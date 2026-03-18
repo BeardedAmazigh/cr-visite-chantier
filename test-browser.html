@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Test Extractor (No Node.js Required)</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 2rem; max-width: 800px; margin: 0 auto; background: #f9f9f9; }
+    textarea { width: 100%; height: 100px; margin-bottom: 1rem; padding: 0.5rem; }
+    pre { background: #eee; padding: 1rem; border-radius: 4px; overflow-x: auto; }
+    button { padding: 0.5rem 1rem; cursor: pointer; background: #0066cc; color: white; border: none; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Test du Générateur MVP</h1>
+  
+  <label for="notes">Notes brutes du chantier :</label>
+  <textarea id="notes">Le mur porteur fissure. Faut que Jean répare ça avant vendredi. On sait pas si l'étanchéité est bonne. L'accès au chantier est bloqué par un camion.</textarea>
+  
+  <button id="runBtn">Tester l'Extraction (Mock LLM)</button>
+  
+  <h3>1. Le Prompt généré :</h3>
+  <pre id="promptOut">En attente...</pre>
+  
+  <h3>2. Le JSON structuré (simulé par le mock) :</h3>
+  <pre id="jsonOut">En attente...</pre>
+
+  <script>
+    // --- Code copié depuis src/extractor.ts pour marcher sans Node.js ---
+    const generateExtractionPrompt = (notes) => {
+      return `
+You are an expert construction site assistant. Generate a structured JSON report from the following unstructured notes.
+
+Rules:
+- Separate facts from interpretation.
+- Do not assume compliance.
+- Keep professional tone.
+- Use clear and short sentences.
+- Always identify actions, owners, and deadlines.
+- Never invent data.
+- If information is missing for an action owner or deadline, output "à vérifier".
+- The output MUST be valid JSON matching exactly the following TypeScript interface, with no additional text or markdown:
+{
+  "observations": string[],
+  "actions": [ { "task": string, "owner": string, "deadline": string } ],
+  "blockers": string[],
+  "points_to_verify": string[]
+}
+All text content in the JSON should be in French.
+
+Notes:
+${notes}
+`.trim();
+    };
+
+    const extractChantierData = async (notes, llmCall) => {
+      const prompt = generateExtractionPrompt(notes);
+      document.getElementById('promptOut').textContent = prompt; // Afficher le prompt pour le test
+      
+      const rawResponse = await llmCall(prompt);
+      const cleaned = rawResponse
+        .replace(/^```json\s*/i, '')
+        .replace(/```\s*$/i, '')
+        .trim();
+        
+      try {
+        return JSON.parse(cleaned);
+      } catch (error) {
+        throw new Error('Failed to parse LLM response as JSON.');
+      }
+    };
+
+    // --- Mock de l'IA pour le test ---
+    const mockLlmApi = async (prompt) => {
+      // Dans la réalité, on appelerait l'API OpenAI / Claude ici.
+      console.log("Envoi du prompt à l'IA...");
+      
+      // On fait semblant que l'IA a mis 1 seconde pour répondre
+      await new Promise(r => setTimeout(r, 800)); 
+      
+      return JSON.stringify({
+        "observations": ["Fissure observée sur le mur porteur."],
+        "actions": [
+          {
+            "task": "Réparer la fissure du mur porteur",
+            "owner": "Jean",
+            "deadline": "Vendredi"
+          }
+        ],
+        "blockers": ["L'accès au chantier est bloqué par un camion."],
+        "points_to_verify": ["Vérifier l'étanchéité."]
+      }, null, 2);
+    };
+
+    // --- Lancement du test ---
+    document.getElementById('runBtn').addEventListener('click', async () => {
+      const notes = document.getElementById('notes').value;
+      document.getElementById('jsonOut').textContent = "Chargement... (Simulation de l'IA)";
+      
+      try {
+        const data = await extractChantierData(notes, mockLlmApi);
+        document.getElementById('jsonOut').textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        document.getElementById('jsonOut').textContent = "Erreur: " + err.message;
+      }
+    });
+  </script>
+</body>
+</html>
