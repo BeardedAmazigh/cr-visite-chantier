@@ -4,7 +4,6 @@ $replacements = [ordered]@{
     "Crǟer" = "Créer"
     "CrǸer" = "Créer"
     "ǟ" = "é"
-    "ǟ" = "é"
     "Ǹ" = "é"
     "Ã¨" = "è"
     "Ãª" = "ê"

@@ -145,8 +145,26 @@ button { display: inline-flex; align-items: center; justify-content: center; gap
 .photo-card img { width: 100%; height: 150px; object-fit: cover; background: #f1f5f9; border-bottom: 1px solid var(--border); }
 .photo-card textarea { border: none; border-radius: 0; min-height: 60px; font-size: 0.85rem; padding: 0.5rem; background: white; }
 .photo-card textarea:focus { box-shadow: none; border-top: 1px solid var(--accent); }
-.remove-photo-btn { position: absolute; top: 0.5rem; right: 0.5rem; background: rgba(255,255,255,0.9); color: var(--danger); border: none; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: var(--shadow-sm); transition: all 0.2s; padding: 0; }
+.remove-photo-btn { position: absolute; top: 0.5rem; right: 0.5rem; background: rgba(255,255,255,0.9); color: var(--danger); border: none; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: var(--shadow-sm); transition: all 0.2s; padding: 0; z-index: 10;}
 .remove-photo-btn:hover { background: var(--danger); color: white; }
+
+/* Inline Entry Photos */
+.entry-photos { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.75rem; padding: 0.75rem; background: #f8fafc; border-radius: 6px; border: 1px dashed var(--border); }
+.entry-photo-thumb { width: 100px; height: 100px; border-radius: 6px; object-fit: cover; border: 1px solid var(--border); position: relative; }
+.entry-photo-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+.entry-photo-thumb .remove-thumb { position: absolute; top: -5px; right: -5px; background: var(--danger); color: white; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; }
+
+/* Cloture Style */
+.entry-card.cloture { opacity: 0.6; background: #f1f5f9; border-style: dashed; }
+.entry-card.cloture .entry-body { text-decoration: line-through; color: var(--text-muted); background: transparent; }
+
+/* Checklist Style */
+.checklist-card { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+.checklist-title { font-weight: 700; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; }
+.checklist-item { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+.checklist-item input[type="checkbox"] { width: 1.15rem; height: 1.15rem; }
+.checklist-item input[type="text"] { border: none; background: transparent; font-size: 0.95rem; flex: 1; }
+.checklist-item input[type="text"]:focus { outline: none; border-bottom: 1px solid var(--accent); }
 
 /* Status & Utils */
 .error { color: var(--danger); background: var(--danger-bg); padding: 1rem; border-radius: 8px; margin-top: 1rem; border: 1px solid #fecaca; }
@@ -302,3 +320,38 @@ button { display: inline-flex; align-items: center; justify-content: center; gap
   .photo-card { border: 1px solid #ccc; page-break-inside: avoid; }
   .photo-card img { height: auto; max-height: 250px; }
 }
+/* PDF Export Styles */
+@media print {
+  body { background: white; padding: 0; }
+  .navbar, .action-bar, .actions, .add-btn, .toolbar-btn, .delete-btn, .header-btn, .icon-btn, .secondary-btn, .text-btn, .text-input.attendance-status-select, .checklist-items .text-btn { display: none !important; }
+  .app-container { max-width: 100%; padding: 0; margin: 0; }
+  .view { animation: none; padding: 0; display: block !important; }
+  .hidden { display: none !important; }
+  .card { border: none !important; box-shadow: none !important; padding: 0 !important; margin-bottom: 3rem; }
+  
+  /* Show banner only on first page if possible */
+  .project-banner { display: flex !important; height: 180px; margin-bottom: 2rem; border: 1px solid #ccc; -webkit-print-color-adjust: exact; }
+  .project-banner img { filter: none !important; opacity: 1 !important; }
+  .banner-right, .edit-cover-btn, .elegant-btn { display: none !important; }
+  
+  /* Professional Tables */
+  .actions-table { border-collapse: collapse; width: 100%; border: 1px solid #000; }
+  .actions-table th { background: #f1f5f9 !important; border: 1px solid #000 !important; -webkit-print-color-adjust: exact; }
+  .actions-table td { border: 1px solid #000 !important; padding: 0.5rem; }
+  .row-absent td { background: #f8fafc !important; color: #94a3b8 !important; -webkit-print-color-adjust: exact; }
+  
+  /* Content Blocks */
+  .form-group { page-break-inside: avoid; margin-bottom: 2rem; }
+  .entry-card { page-break-inside: avoid; border: 1px solid #e2e8f0; margin-bottom: 1rem; padding: 1rem; }
+  .entry-card.cloture { display: none !important; } /* Don't print closed items in the report */
+  
+  /* Input/Select values in print */
+  .text-input { border: none; padding: 0; background: transparent; }
+  input[type="text"] { border-bottom: 1px solid transparent; }
+  
+  /* General cleanup */
+  header h2 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: 0.5rem; }
+}
+
+.attendance-photo { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+.photo-placeholder { border: 1px dashed var(--border); }

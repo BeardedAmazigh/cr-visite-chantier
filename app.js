@@ -57,7 +57,10 @@ function setupAuthListeners() {
   authForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const email = document.getElementById('auth-email').value.trim();
+    const password = document.getElementById('auth-password').value.trim();
     if(!email) return;
+
+    // Direct Login (Simulation - always succeeds if email given)
 
     const users = getDb('users');
     let userId = Object.keys(users).find(id => users[id].email === email);
@@ -135,7 +138,7 @@ function renderDashboard() {
   
   list.innerHTML = '';
   if(allProjects.length === 0) {
-    list.innerHTML = '<p class="subtitle">Aucun projet. CrÃ©ez-en un ci-dessus.</p>';
+    list.innerHTML = '<p class="subtitle">Aucun projet. Créez-en un ci-dessus.</p>';
     return;
   }
 
@@ -174,8 +177,30 @@ function setupProjectListeners() {
   });
 
   document.getElementById('create-report-btn').addEventListener('click', () => {
+    // Inheritance Logic: find the last report for this project
+    const reports = getDb('reports').filter(r => r.projectId === currentProjectId);
+    reports.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const lastReport = reports[0];
+
     currentReportId = null; // New report
     resetGeneratorUI();
+
+    if (lastReport && lastReport.data) {
+        // Inherit non-closed observations
+        const openEntries = (lastReport.data.entries || []).filter(e => !e.cloture);
+        // Inherit checklists
+        const checklists = lastReport.data.checklists || [];
+        
+        populateForm({ 
+            attendance: [], // Attendance starts fresh
+            entries: openEntries,
+            checklists: checklists,
+            meetingActions: [], // Usually fresh per meeting
+            keyDates: lastReport.data.keyDates || [], // Dates usually persist
+            transmissions: [] 
+        });
+    }
+
     showView('generator');
   });
 
@@ -224,7 +249,7 @@ function renderProjectDetail(proj) {
     const dateStr = new Date(r.createdAt).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
     const isSent = r.status === 'sent';
     const statusClass = isSent ? 'status-sent' : 'status-unsent';
-    const statusText = isSent ? 'EnvoyÃ©' : 'Brouillon';
+    const statusText = isSent ? 'Envoyé' : 'Brouillon';
 
     const card = document.createElement('div');
     card.className = 'report-card fade-in';
@@ -235,7 +260,7 @@ function renderProjectDetail(proj) {
     card.innerHTML = `
       <div class="report-info">
         <h3>Compte Rendu - ${dateStr}</h3>
-        <span>${r.data.observations.length} Observations â€¢ ${r.data.actions.length} Actions</span>
+        <span>${r.data.observations.length} Observations • ${r.data.actions.length} Actions</span>
       </div>
       <div>${badgeHtml}</div>
     `;
@@ -252,8 +277,7 @@ function renderProjectDetail(proj) {
       currentReportId = r.id;
       resetGeneratorUI();
       populateForm(r.data); // load existing data
-      document.getElementById('output-section').classList.remove('hidden');
-      document.getElementById('input-section').classList.add('hidden'); // Hide input if viewing history
+      // showView handles the visibility of the generator view correctly
       showView('generator');
     });
 
@@ -411,11 +435,11 @@ function renderActorsList() {
         <div class="contact">
           ${actor.email || 'Pas d\'email'} <br>
           ${actor.mobile ? 'Port: ' + actor.mobile : ''} 
-          ${actor.mobile && actor.phone ? 'â€¢' : ''} 
+          ${actor.mobile && actor.phone ? '•' : ''} 
           ${actor.phone ? 'Fixe: ' + actor.phone : ''}
-          ${!actor.mobile && !actor.phone ? 'Pas de tÃ©l' : ''}
+          ${!actor.mobile && !actor.phone ? 'Pas de tél' : ''}
         </div>
-        <button class="icon-btn mt-2" onclick="editActor('${actor.id}')">âœï¸ Modifier</button>
+        <button class="icon-btn mt-2" onclick="editActor('${actor.id}')">✏️ Modifier</button>
       </div>
     `;
     list.appendChild(card);
@@ -495,7 +519,7 @@ window.openDistributionModal = function(reportId) {
         <input type="checkbox" class="dist-actor-checkbox" value="${actor.id}" ${isChecked}>
         <div>
           <span class="title">${actor.firstname} ${actor.lastname} (${actor.company})</span>
-          <span class="desc">${actor.type} â€¢ ${actor.email || 'Email manquant'}</span>
+          <span class="desc">${actor.type} • ${actor.email || 'Email manquant'}</span>
         </div>
       `;
       list.appendChild(div);
@@ -637,59 +661,17 @@ function renderLotActorCheckboxes(selectedActorIds = []) {
 
 // --- 4. Generator (MVP) Flow ---
 function setupGeneratorListeners() {
-  document.getElementById('cancel-report-btn').addEventListener('click', () => {
+  document.getElementById('cancel-report-btn')?.addEventListener('click', () => {
     const proj = getDb('projects').find(p => p.id === currentProjectId);
     showView('projectDetail');
     renderProjectDetail(proj);
   });
 
-  // Mock Extraction logic...
-  document.getElementById('generate-btn').addEventListener('click', async () => {
-    const b = document.getElementById('generate-btn');
-    const loading = document.getElementById('loading');
-    const err = document.getElementById('error-message');
-    
-    b.disabled = true;
-    err.classList.add('hidden');
-    loading.classList.remove('hidden');
-
-    // Simulate LLM Call
-    setTimeout(() => {
-        const mockData = {
-          entries: [
-            { html: "Fissure observÃ©e sur le mur porteur de la fa\u00e7ade ouest.", type: "Observation", actorId: "", deadline: "" },
-            { html: "<b>R\u00e9parer la fissure du mur porteur</b> â€” intervention urgente Ã  planifier.", type: "Action", actorId: "", deadline: "Vendredi" },
-            { html: "Acc\u00e8s au chantier bloqu\u00e9 par d\u00e9p\u00f4t de mat\u00e9riaux en zone de passage.", type: "Point bloquant", actorId: "", deadline: "" },
-            { html: "V\u00e9rifier l\u2019\u00e9tanch\u00e9it\u00e9 en toiture ap\u00e8s les pluies.", type: "\u00c0 v\u00e9rifier", actorId: "", deadline: "" }
-          ]
-        };
-        
-        populateForm(mockData);
-        document.getElementById('output-section').classList.remove('hidden');
-        loading.classList.add('hidden');
-        b.disabled = false;
-        
-        // Hide input after generating to focus on editing
-        document.getElementById('input-section').classList.add('hidden');
-    }, 1500);
-  });
-
-  // Photo uploads
-  document.getElementById('photo-upload').addEventListener('change', (e) => {
-    Array.from(e.target.files).forEach(f => {
-      if(!f.type.startsWith('image/')) return;
-      const reader = new FileReader();
-      reader.onload = (e) => addPhotoToGallery(e.target.result);
-      reader.readAsDataURL(f);
-    });
-    e.target.value = "";
-  });
-
   // Export
-  document.getElementById('print-btn').addEventListener('click', () => window.print());
+  document.getElementById('print-btn')?.addEventListener('click', () => window.print());
 
   // Save Report Logic
-  document.getElementById('save-draft-btn').addEventListener('click', () => {
+  document.getElementById('save-draft-btn')?.addEventListener('click', () => {
     saveCurrentReportForm();
     
     // Return to project
@@ -700,13 +682,19 @@ function setupGeneratorListeners() {
 }
 
 function resetGeneratorUI() {
-  document.getElementById('input-section').classList.remove('hidden');
-  document.getElementById('output-section').classList.add('hidden');
-  document.getElementById('notes-input').value = '';
-  document.getElementById('error-message').classList.add('hidden');
-  const entriesContainer = document.getElementById('entries-container');
-  if(entriesContainer) entriesContainer.innerHTML = '';
-  document.getElementById('photo-gallery').innerHTML = '';
+  document.getElementById('cr-editor-section').classList.remove('hidden');
+  document.getElementById('notes-input')?.parentElement?.classList.add('hidden'); // Ensure AI input stays hidden
+  const containers = [
+    'entries-container', 
+    'next-meeting-actions-tbody', 
+    'key-dates-tbody', 
+    'documents-tbody', 
+    'checklists-container'
+  ];
+  containers.forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.innerHTML = '';
+  });
 }
 
 // Scrape the DOM to save the edited form state
@@ -714,6 +702,10 @@ function saveCurrentReportForm() {
   const data = {
     attendance: scrapeAttendance(),
     entries: scrapeEntries(),
+    meetingActions: scrapeTableData('next-meeting-actions-tbody'),
+    keyDates: scrapeTableData('key-dates-tbody'),
+    transmissions: scrapeTableData('documents-tbody'),
+    checklists: scrapeChecklists()
   };
 
   const reports = getDb('reports');
@@ -732,6 +724,7 @@ function saveCurrentReportForm() {
       data: data
     };
     reports.push(newReport);
+    currentReportId = newReport.id; // Corrected: assign ID to prevent duplicate on next save
   }
   
   saveDb('reports', reports);
@@ -752,36 +745,87 @@ function scrapeEntries() {
   const container = document.getElementById('entries-container');
   if(!container) return [];
   const cards = container.querySelectorAll('.entry-card');
-  return Array.from(cards).map(card => ({
-    html: card.querySelector('.entry-body').innerHTML,
-    type: card.querySelector('.entry-type-select').value,
-    actorId: card.querySelector('.entry-actor-select').value,
-    actorName: card.querySelector('.entry-actor-select').selectedOptions[0]?.text || '',
-    deadline: card.querySelector('.entry-deadline-text').value.trim()
-  })).filter(e => e.html.trim() && e.html.trim() !== '<br>');
+  return Array.from(cards).map(card => {
+    const photos = Array.from(card.querySelectorAll('.entry-photo-thumb img')).map(img => img.src);
+    return {
+        html: card.querySelector('.entry-body').innerHTML,
+        type: card.querySelector('.entry-type-select').value,
+        actorId: card.querySelector('.entry-actor-select').value,
+        actorName: card.querySelector('.entry-actor-select').selectedOptions[0]?.text || '',
+        deadline: card.querySelector('.entry-deadline-text').value.trim(),
+        cloture: card.querySelector('.cloture-cb').checked,
+        photos: photos
+    };
+  }).filter(e => e.html.trim() && e.html.trim() !== '<br>');
+}
+
+function scrapeTableData(tbodyId) {
+    const tbody = document.getElementById(tbodyId);
+    if(!tbody) return [];
+    return Array.from(tbody.rows).map(row => {
+        const inputs = Array.from(row.querySelectorAll('input, select'));
+        return inputs.map(i => i.value);
+    });
+}
+
+function scrapeChecklists() {
+    const container = document.getElementById('checklists-container');
+    if(!container) return [];
+    return Array.from(container.querySelectorAll('.checklist-card')).map(card => {
+        return {
+            title: card.querySelector('.checklist-title-input').value,
+            items: Array.from(card.querySelectorAll('.checklist-item')).map(item => ({
+                text: item.querySelector('.item-text').value,
+                checked: item.querySelector('.item-cb').checked
+            }))
+        };
+    });
 }
 
 // --- Generic Render Helpers ---
 function populateForm(data) {
   const getEl = id => document.getElementById(id);
+  
+  // 1. Attendance
   if(getEl('attendance-container')) renderAttendance(data.attendance);
 
+  // 2. Observations
   const entriesContainer = getEl('entries-container');
   if(entriesContainer) {
     entriesContainer.innerHTML = '';
     if (data.entries && data.entries.length > 0) {
       data.entries.forEach(e => addEntry(e));
     } else {
-      // Legacy fallback: convert old observations/actions to entries
-      (data.observations || []).forEach(v => addEntry({ html: v, type: 'Observation', actorId: '', deadline: '' }));
-      (data.actions || []).forEach(a => addEntry({ html: `<b>${a.task}</b>`, type: 'Action', actorId: '', deadline: a.deadline || '' }));
-      (data.blockers || []).forEach(v => addEntry({ html: v, type: 'Point bloquant', actorId: '', deadline: '' }));
-      (data.points_to_verify || []).forEach(v => addEntry({ html: v, type: '\u00c0 v\u00e9rifier', actorId: '', deadline: '' }));
-      if(!data.entries && !data.observations && !data.actions && !data.blockers && !data.points_to_verify) {
-        addEntry();
-      }
+      addEntry();
     }
-    if(entriesContainer.children.length === 0) addEntry();
+  }
+
+  // 3. Meeting Actions
+  const actionsTbody = getEl('next-meeting-actions-tbody');
+  if(actionsTbody) {
+      actionsTbody.innerHTML = '';
+      (data.meetingActions || []).forEach(row => addMeetingAction(row));
+  }
+
+  // 4. Key Dates
+  const datesTbody = getEl('key-dates-tbody');
+  if(datesTbody) {
+      datesTbody.innerHTML = '';
+      (data.keyDates || []).forEach(row => addKeyDateRow(row));
+  }
+
+  // 5. Documents
+  const docsTbody = getEl('documents-tbody');
+  if(docsTbody) {
+      docsTbody.innerHTML = '';
+      (data.transmissions || []).forEach(row => addDocumentRow(row));
+  }
+
+  // 6. Checklists
+  const checklistsContainer = getEl('checklists-container');
+  if(checklistsContainer) {
+      checklistsContainer.innerHTML = '';
+      (data.checklists || []).forEach(c => renderChecklist(c));
   }
 }
 
@@ -796,54 +840,44 @@ function renderAttendance(savedAttendance) {
     savedAttendance.forEach(a => { savedMap[a.actorId] = a; });
   }
 
-  const projectLots = getDb('lots').filter(l => l.projectId === currentProjectId);
-  const getActorLotName = (actorId) => {
-    const assignedLots = projectLots.filter(l => (l.actors || []).includes(actorId));
-    if(assignedLots.length > 0) return assignedLots.map(l => l.name).join(', ');
-    return '';
-  };
-
-  let attendanceList = projectActors.map(actor => {
-    const saved = savedMap[actor.id] || {};
-    const lotName = getActorLotName(actor.id);
-    let roleOrLot = actor.role || actor.type;
-    if (lotName) roleOrLot += ` - Lot: ${lotName}`;
-    
+  const attendanceList = projectActors.map(a => {
+    const saved = savedMap[a.id] || {};
     return {
-      actorId: actor.id,
-      name: `${actor.firstname} ${actor.lastname}`,
-      company: actor.company,
-      role: roleOrLot,
-      type: actor.type,
+      actorId: a.id,
+      name: `${a.firstname} ${a.lastname}`,
+      company: a.company,
+      role: a.role,
+      photo: a.photo,
       status: saved.status || 'Présent',
       comment: saved.comment || ''
     };
   });
-  
-  const coordTypes = ["Maitre d'Ouvrage", "Maitre d'Oeuvre", "Bureau d'Etudes", "CSPS", "Bureau de Controle"];
-  
-  const coordList = attendanceList.filter(a => coordTypes.includes(a.type));
-  const execList = attendanceList.filter(a => !coordTypes.includes(a.type));
-  
+
+  const coordList = attendanceList.filter(a => ['Maître d\'Ouvrage', 'Maîtrise d\'œuvre', 'Architecte', 'BET', 'Coordinateur SPS', 'Contrôle Technique'].includes(a.role) || a.role.toLowerCase().includes('coordination'));
+  const execList = attendanceList.filter(a => !coordList.find(c => c.actorId === a.actorId));
+
   let html = `<table class="actions-table" style="width:100%; text-align:left;">`;
-  html += `<thead><tr><th>Acteur</th><th>SociÃ©tÃ©</th><th>RÃ´le / Lot</th><th>Statut</th><th>Commentaire</th></tr></thead>`;
+  html += `<thead><tr><th>Photo</th><th>Acteur</th><th>Société</th><th>Rôle / Lot</th><th>Statut</th><th>Commentaire</th></tr></thead>`;
   
   const buildRows = (list, groupName) => {
     if(list.length === 0) return '';
-    let res = `<tr><th colspan="5" style="background-color: var(--bg-color); padding: 0.5rem; text-transform: uppercase; font-size: 0.8rem; color: var(--text-color);">${groupName}</th></tr>`;
+    let res = `<tr><th colspan="6" style="background-color: var(--bg-color); padding: 0.5rem; text-transform: uppercase; font-size: 0.8rem; color: var(--text-color);">${groupName}</th></tr>`;
     res += list.map(a => {
       const isAbsent = a.status === 'Absent';
       const rowClass = isAbsent ? 'row-absent' : '';
+      const photoHtml = a.photo ? `<img src="${a.photo}" class="attendance-photo" style="width:32px; height:32px; border-radius:50%; object-fit:cover;">` : `<div class="photo-placeholder" style="width:32px; height:32px; border-radius:50%; background:#e2e8f0; display:flex; align-items:center; justify-content:center; font-size:10px; color:#64748b;">N/A</div>`;
+      
       return `
       <tr class="attendance-row ${rowClass}" data-actor-id="${a.actorId}">
+        <td style="width:40px; text-align:center;">${photoHtml}</td>
         <td>${a.name}</td>
         <td>${a.company}</td>
         <td>${a.role}</td>
         <td>
           <select class="text-input attendance-status-select" style="padding: 0.25rem; font-size: 0.9rem;" onchange="updateAttendanceRowStyle(this)">
-            <option value="PrÃ©sent" ${a.status === 'PrÃ©sent' ? 'selected' : ''}>PrÃ©sent</option>
+            <option value="Présent" ${a.status === 'Présent' ? 'selected' : ''}>Présent</option>
             <option value="Absent" ${a.status === 'Absent' ? 'selected' : ''}>Absent</option>
-            <option value="ExcusÃ©" ${a.status === 'ExcusÃ©' ? 'selected' : ''}>ExcusÃ©</option>
+            <option value="Excusé" ${a.status === 'Excusé' ? 'selected' : ''}>Excusé</option>
             <option value="Non requis" ${a.status === 'Non requis' ? 'selected' : ''}>Non requis</option>
           </select>
         </td>
@@ -854,8 +888,8 @@ function renderAttendance(savedAttendance) {
   };
 
   html += `<tbody>`;
-  html += buildRows(coordList, "Coordination & MaÃ®trise d'Å“uvre");
-  html += buildRows(execList, "Entreprises d'exÃ©cution (Lots)");
+  html += buildRows(coordList, "Coordination & Maîtrise d'œuvre");
+  html += buildRows(execList, "Entreprises d'exécution (Lots)");
   html += `</tbody></table>`;
   
   if(attendanceList.length === 0) {
@@ -888,7 +922,7 @@ function addListItem(containerId, cls = "") { renderListItem(document.getElement
 
 function renderActionRow(t="", o="", d="") {
   const tr = document.createElement('tr');
-  const valC = (v) => v === "Ã  vÃ©rifier" || v === "" ? "style='color:#ef4444;font-style:italic;font-weight:500;'" : "";
+  const valC = (v) => v === "à vérifier" || v === "" ? "style='color:#ef4444;font-style:italic;font-weight:500;'" : "";
   
   const actors = getDb('actors').filter(a => a.projectId === currentProjectId);
   let optionsHtml = `<option value="">Saisir responsable...</option>`;
@@ -901,10 +935,10 @@ function renderActionRow(t="", o="", d="") {
     optionsHtml += `<option value="${fullName}" ${isSelected}>${fullName} (${a.company})</option>`;
   });
   
-  if (o && !selectedActorMatched && o !== "Ã  vÃ©rifier") {
+  if (o && !selectedActorMatched && o !== "à vérifier") {
     optionsHtml += `<option value="${o}" selected>${o}</option>`;
-  } else if (o === "Ã  vÃ©rifier") {
-    optionsHtml += `<option value="Ã  vÃ©rifier" selected disabled style="color:red">Ã  vÃ©rifier</option>`;
+  } else if (o === "à vérifier") {
+    optionsHtml += `<option value="à vérifier" selected disabled style="color:red">à vérifier</option>`;
   }
 
   tr.innerHTML = `
@@ -946,26 +980,48 @@ window.addEntry = function(data = {}) {
     actorOptions += `<option value="${a.id}" ${sel}>${fullName} (${a.company})</option>`;
   });
 
-  const typeOptions = ['Observation', 'Action', 'Point bloquant', 'Ã€ vÃ©rifier']
+  const typeOptions = ['Observation', 'Action', 'Point bloquant', 'À vérifier']
     .map(t => `<option value="${t}" ${(data.type || 'Observation') === t ? 'selected' : ''}>${t}</option>`)
     .join('');
+  
+  const clotureChecked = data.cloture ? 'checked' : '';
+  const clotureClass = data.cloture ? 'cloture' : '';
 
   const card = document.createElement('div');
-  card.className = 'entry-card fade-in';
+  card.className = `entry-card fade-in ${clotureClass}`;
   card.innerHTML = `
     <div class="entry-toolbar">
       <button type="button" class="toolbar-btn" title="Gras" onclick="document.execCommand('bold')"><b>B</b></button>
       <button type="button" class="toolbar-btn" title="Italique" onclick="document.execCommand('italic')"><i>I</i></button>
-      <button type="button" class="toolbar-btn" title="SoulignÃ©" onclick="document.execCommand('underline')"><u>S</u></button>
-      <button type="button" class="toolbar-btn" title="BarrÃ©" onclick="document.execCommand('strikeThrough')"><s>X</s></button>
+      <button type="button" class="toolbar-btn" title="Souligné" onclick="document.execCommand('underline')"><u>S</u></button>
+      <button type="button" class="toolbar-btn" title="Barré" onclick="document.execCommand('strikeThrough')"><s>X</s></button>
       <span class="toolbar-separator"></span>
       <label class="toolbar-btn color-btn" title="Couleur du texte">
-        ðŸŽ¨
+        🎨
         <input type="color" class="color-picker-input" onchange="document.execCommand('foreColor', false, this.value)">
       </label>
-      <button type="button" class="toolbar-btn" title="Sans mise en forme" onclick="document.execCommand('removeFormat')" style="font-size:0.75rem;">âœ– Fmt</button>
+      <button type="button" class="toolbar-btn" title="Sans mise en forme" onclick="document.execCommand('removeFormat')" style="font-size:0.75rem;">✖ Fmt</button>
+      
+      <span class="toolbar-separator"></span>
+      <label class="toolbar-btn" title="Ajouter une photo" style="cursor:pointer">
+        📸
+        <input type="file" accept="image/*" class="hidden-input entry-photo-input">
+      </label>
+
+      <div style="margin-left:auto; display:flex; align-items:center; gap:0.5rem; font-size:0.85rem; font-weight:600;">
+        <label>Cloturé</label>
+        <input type="checkbox" class="cloture-cb" ${clotureChecked} onchange="this.closest('.entry-card').classList.toggle('cloture', this.checked)">
+      </div>
     </div>
-    <div class="entry-body" contenteditable="true" data-placeholder="RÃ©digez votre remarque ici...">${data.html || ''}</div>
+    <div class="entry-body" contenteditable="true" data-placeholder="Rédigez votre remarque ici...">${data.html || ''}</div>
+    <div class="entry-photos ${data.photos && data.photos.length > 0 ? '' : 'hidden'}">
+      ${(data.photos || []).map(p => `
+        <div class="entry-photo-thumb">
+          <img src="${p}">
+          <span class="remove-thumb" onclick="const p=this.parentElement; const c=p.parentElement; p.remove(); if(c.children.length===0) c.classList.add('hidden')">✖</span>
+        </div>
+      `).join('')}
+    </div>
     <div class="entry-meta">
       <select class="text-input entry-type-select">
         ${typeOptions}
@@ -984,12 +1040,28 @@ window.addEntry = function(data = {}) {
                   d.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'});
               }
             }">
-          <span class="deadline-icon-label">ðŸ“…</span>
+          <span class="deadline-icon-label">📅</span>
         </div>
       </div>
-      <button type="button" class="delete-btn entry-delete-btn" onclick="this.closest('.entry-card').remove()" title="Supprimer">âœ–</button>
+      <button type="button" class="delete-btn entry-delete-btn" onclick="this.closest('.entry-card').remove()" title="Supprimer">✖</button>
     </div>
   `;
+
+  // Photo Upload Handler
+  card.querySelector('.entry-photo-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (et) => {
+        const photosDiv = card.querySelector('.entry-photos');
+        photosDiv.classList.remove('hidden');
+        const thumb = document.createElement('div');
+        thumb.className = 'entry-photo-thumb';
+        thumb.innerHTML = `<img src="${et.target.result}"><span class="remove-thumb" onclick="const p=this.parentElement; const c=p.parentElement; p.remove(); if(c.children.length===0) c.classList.add('hidden')">✖</span>`;
+        photosDiv.appendChild(thumb);
+    };
+    reader.readAsDataURL(file);
+  });
 
   // Update type badge color on change
   const typeSelect = card.querySelector('.entry-type-select');
@@ -998,7 +1070,7 @@ window.addEntry = function(data = {}) {
       'Observation': '#2563eb',
       'Action': '#7c3aed',
       'Point bloquant': '#ef4444',
-      'Ã€ vÃ©rifier': '#f59e0b'
+      'À vérifier': '#f59e0b'
     };
     typeSelect.style.borderLeftColor = colors[typeSelect.value] || '#2563eb';
     typeSelect.style.borderLeftWidth = '4px';
@@ -1008,12 +1080,98 @@ window.addEntry = function(data = {}) {
 
   container.appendChild(card);
 };
-function addPhotoToGallery(imgSrc) {
-  const div = document.createElement('div');
-  div.className = 'photo-card fade-in';
-  div.innerHTML = `
-    <button class="remove-photo-btn" onclick="this.parentElement.remove()">âœ–</button>
-    <img src="${imgSrc}" alt="Photo">
-    <textarea placeholder="Commentaire..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'"></textarea>`;
-  document.getElementById('photo-gallery').appendChild(div);
-}
+
+// 3. Meeting Actions Helper
+window.addMeetingAction = function(rowData = ["", "", ""]) {
+    const tbody = document.getElementById('next-meeting-actions-tbody');
+    if(!tbody) return;
+    const tr = document.createElement('tr');
+    
+    // Actor options for internal Responsable selection
+    const actors = getDb('actors').filter(a => a.projectId === currentProjectId);
+    let optionsHtml = `<option value="">Choisir responsable...</option>`;
+    actors.forEach(a => {
+        const fullName = `${a.firstname} ${a.lastname}`;
+        const sel = rowData[1] === fullName ? 'selected' : '';
+        optionsHtml += `<option value="${fullName}" ${sel}>${fullName} (${a.company})</option>`;
+    });
+
+    tr.innerHTML = `
+        <td><input type="text" class="text-input" placeholder="Tâche / Action..." value="${rowData[0] || ''}"></td>
+        <td><select class="text-input">${optionsHtml}</select></td>
+        <td><input type="text" class="text-input" placeholder="Délai..." value="${rowData[2] || ''}"></td>
+        <td><button class="delete-btn" onclick="this.closest('tr').remove()">✖</button></td>
+    `;
+    tbody.appendChild(tr);
+};
+
+// 4. Key Dates Helper
+window.addKeyDateRow = function(rowData = ["", ""]) {
+    const tbody = document.getElementById('key-dates-tbody');
+    if(!tbody) return;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td><input type="text" class="text-input" placeholder="Jalon (ex: Fin Gros Œuvre)..." value="${rowData[0] || ''}"></td>
+        <td><input type="text" class="text-input" placeholder="Date..." value="${rowData[1] || ''}"></td>
+        <td><button class="delete-btn" onclick="this.closest('tr').remove()">✖</button></td>
+    `;
+    tbody.appendChild(tr);
+};
+
+// 5. Document Transmissions Helper
+window.addDocumentRow = function(rowData = ["", "", ""]) {
+    const tbody = document.getElementById('documents-tbody');
+    if(!tbody) return;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td><input type="text" class="text-input" placeholder="Nom du document..." value="${rowData[0] || ''}"></td>
+        <td><input type="text" class="text-input" placeholder="Destinataires..." value="${rowData[1] || ''}"></td>
+        <td><input type="text" class="text-input" placeholder="Date..." value="${rowData[2] || ''}"></td>
+        <td><button class="delete-btn" onclick="this.closest('tr').remove()">✖</button></td>
+    `;
+    tbody.appendChild(tr);
+};
+
+// 6. Checklists Helper
+window.addChecklist = function() {
+    renderChecklist({ title: "Nouvelle Checklist", items: [{ text: "", checked: false }] });
+};
+
+window.renderChecklist = function(data) {
+    const container = document.getElementById('checklists-container');
+    if(!container) return;
+    const card = document.createElement('div');
+    card.className = 'checklist-card fade-in';
+    card.innerHTML = `
+        <div class="checklist-title">
+            <input type="text" class="text-input checklist-title-input" value="${data.title || ''}" placeholder="Titre de la checklist...">
+            <button class="delete-btn" onclick="this.closest('.checklist-card').remove()">✖</button>
+        </div>
+        <div class="checklist-items">
+            ${(data.items || []).map(item => `
+                <div class="checklist-item">
+                    <input type="checkbox" class="item-cb" ${item.checked ? 'checked' : ''}>
+                    <input type="text" class="item-text" value="${item.text || ''}" placeholder="Tâche...">
+                    <button class="text-btn" onclick="this.parentElement.remove()">✖</button>
+                </div>
+            `).join('')}
+        </div>
+        <button class="add-btn" style="font-size:0.8rem;" onclick="addChecklistItem(this)">+ Ajouter un élément</button>
+    `;
+    container.appendChild(card);
+};
+
+window.addChecklistItem = function(btn) {
+    const itemsContainer = btn.previousElementSibling;
+    const div = document.createElement('div');
+    div.className = 'checklist-item';
+    div.innerHTML = `
+        <input type="checkbox" class="item-cb">
+        <input type="text" class="item-text" placeholder="Tâche...">
+        <button class="text-btn" onclick="this.parentElement.remove()">✖</button>
+    `;
+    itemsContainer.appendChild(div);
+};
+
+// --- Cleanup Legacy Functions ---
+// (We might want to remove addPhotoToGallery if it's no longer used)

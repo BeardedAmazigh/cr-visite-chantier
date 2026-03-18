@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GÃ©nÃ©rateur de Compte Rendu - Chantier V2</title>
+  <title>Générateur de Compte Rendu - Chantier V2</title>
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -15,7 +15,7 @@
     <div id="view-auth" class="view">
       <div class="app-header">
         <h1>Bienvenue</h1>
-        <p>Connectez-vous Ã  votre espace personnel.</p>
+        <p>Connectez-vous à votre espace personnel.</p>
       </div>
       <div class="card auth-card">
         <form id="auth-form">
@@ -69,7 +69,7 @@
     <div id="view-project-detail" class="view hidden">
       <header class="navbar" style="border-bottom: none; margin-bottom: 0;">
         <div class="nav-left">
-          <button id="back-to-dashboard" class="icon-btn">â† Retour</button>
+          <button id="back-to-dashboard" class="icon-btn">← Retour</button>
           <h2 id="current-project-title">Titre du Projet</h2>
         </div>
         <div class="nav-right">
@@ -109,65 +109,113 @@
     <!-- ==================== VIEW: GENERATOR (THE MVP) ==================== -->
     <div id="view-generator" class="view hidden">
       <header class="navbar">
-        <button id="cancel-report-btn" class="icon-btn">â† Annuler</button>
-        <h2>Nouveau CR</h2>
+        <div class="nav-left">
+          <button id="cancel-report-btn" class="icon-btn">← Annuler</button>
+          <h2>Nouveau Compte Rendu</h2>
+        </div>
       </header>
 
-      <main class="main-content">
-        <!-- Section 1 : Saisie des notes (Input) -->
-        <section id="input-section" class="card">
-          <h2>1. Vos notes de chantier</h2>
-          <p class="subtitle">Collez vos notes brutes, remarques, ou retranscriptions vocales ici.</p>
-          <textarea id="notes-input" placeholder="Ex: Le mur porteur fissure..."></textarea>
-          
-          <button id="generate-btn" class="primary-btn">
-            <span class="icon">✨</span> Générer le Brouillon
-          </button>
-          <div id="loading" class="hidden">
-             <div class="spinner"></div>
-             <span>Analyse par l'IA en cours...</span>
-          </div>
-          <div id="error-message" class="error hidden"></div>
-        </section>
+      <!-- Banner for PDF/UI Consistency -->
+      <div id="generator-project-banner" class="project-banner" style="margin-bottom: 2rem;">
+         <img id="generator-banner-img" src="" class="hidden">
+         <div class="project-banner-overlay">
+            <h1 id="generator-project-title" style="color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.5); font-size: 1.5rem; margin-left: 1rem;">Rapport de Visite</h1>
+         </div>
+      </div>
 
-        <!-- Section 2 : Édition du compte rendu (Output) -->
-        <section id="output-section" class="card hidden slide-up">
+      <main class="main-content">
+        <!-- The Structured Compte Rendu Editor -->
+        <section id="cr-editor-section" class="card slide-up">
           <div class="output-header">
-            <h2>2. Compte Rendu Structuré</h2>
+            <h2>Détails du Compte Rendu</h2>
             <div class="actions">
               <button id="save-draft-btn" class="secondary-btn">Enregistrer Brouillon</button>
               <button id="print-btn" class="primary-btn">Exporter PDF</button>
             </div>
           </div>
           
-          <p class="subtitle">Rédigez vos remarques, assignez un acteur et une date limite pour chaque entrée.</p>
+          <p class="subtitle">Complétez les sections ci-dessous pour votre rapport de visite.</p>
 
-          <!-- Attendance -->
+          <!-- 1. Présences -->
           <div class="form-group">
-            <label>Présences</label>
+            <label>1. Présences</label>
             <div id="attendance-container" class="table-container">
               <!-- Rendered by JS -->
             </div>
           </div>
 
-          <!-- Photos -->
+          <!-- 2. Remarques & Observations -->
           <div class="form-group">
-            <label>Photos &amp; Annotations</label>
-            <div class="image-upload-wrapper">
-               <input type="file" id="photo-upload" accept="image/*" multiple class="hidden-input">
-               <label for="photo-upload" class="upload-btn">
-                 <span class="icon">📸</span> Ajouter des photos
-               </label>
-            </div>
-            <div id="photo-gallery" class="photo-gallery"></div>
+            <label>2. Remarques & Observations</label>
+            <div id="entries-container"></div>
+            <button class="add-btn" id="add-entry-btn" onclick="addEntry()">+ Ajouter une observation</button>
           </div>
 
-          <!-- Unified Entries -->
+          <!-- 3. Actions pour la prochaine réunion -->
           <div class="form-group">
-            <label>Remarques &amp; Actions</label>
-            <div id="entries-container"></div>
-            <button class="add-btn" id="add-entry-btn" onclick="addEntry()">+ Ajouter une entrée</button>
+            <label>3. Actions pour la prochaine réunion</label>
+            <div id="next-meeting-actions-container" class="table-container">
+               <table class="actions-table">
+                 <thead>
+                   <tr>
+                     <th>Action / Remarque</th>
+                     <th style="width: 250px;">Responsable</th>
+                     <th style="width: 180px;">Délai</th>
+                     <th style="width: 40px;"></th>
+                   </tr>
+                 </thead>
+                 <tbody id="next-meeting-actions-tbody"></tbody>
+               </table>
+            </div>
+            <button class="add-btn" onclick="addMeetingAction()">+ Ajouter une action</button>
           </div>
+
+          <!-- 4. Dates Clés & Délais -->
+          <div class="form-group">
+            <label>4. Dates Clés & Délais</label>
+            <div id="key-dates-container" class="table-container">
+              <table class="actions-table">
+                <thead>
+                  <tr>
+                    <th>Événement / Jalon</th>
+                    <th style="width: 200px;">Date prévue</th>
+                    <th style="width: 40px;"></th>
+                  </tr>
+                </thead>
+                <tbody id="key-dates-tbody"></tbody>
+              </table>
+            </div>
+            <button class="add-btn" onclick="addKeyDateRow()">+ Ajouter un jalon</button>
+          </div>
+
+          <!-- 5. Diffusion de Documents -->
+          <div class="form-group">
+            <label>5. Diffusion de Documents</label>
+            <div id="documents-container" class="table-container">
+              <table class="actions-table">
+                <thead>
+                  <tr>
+                    <th>Document</th>
+                    <th style="width: 200px;">Destinataires</th>
+                    <th style="width: 150px;">Date</th>
+                    <th style="width: 40px;"></th>
+                  </tr>
+                </thead>
+                <tbody id="documents-tbody"></tbody>
+              </table>
+            </div>
+            <button class="add-btn" onclick="addDocumentRow()">+ Ajouter un document</button>
+          </div>
+
+          <!-- 6. Checklists -->
+          <div class="form-group">
+            <label>6. Checklists</label>
+            <div id="checklists-container">
+              <!-- Rendered by JS -->
+            </div>
+            <button class="add-btn" onclick="addChecklist()">+ Créer une checklist</button>
+          </div>
+
         </section>
       </main>
     </div>
@@ -176,7 +224,7 @@
     <div id="view-actors" class="view hidden">
       <header class="navbar">
         <div class="nav-left">
-          <button id="back-to-project-from-actors" class="icon-btn">â† Retour au Projet</button>
+          <button id="back-to-project-from-actors" class="icon-btn">← Retour au Projet</button>
           <h2>Carnet d'adresses (Acteurs)</h2>
         </div>
         <button id="add-actor-btn" class="primary-btn shrink">+ Nouvel Acteur</button>
@@ -192,7 +240,7 @@
     <div id="view-lots" class="view hidden">
       <header class="navbar">
         <div class="nav-left">
-          <button id="back-to-project-from-lots" class="icon-btn">â† Retour au Projet</button>
+          <button id="back-to-project-from-lots" class="icon-btn">← Retour au Projet</button>
           <h2>Lots du Projet</h2>
         </div>
         <button id="add-lot-btn" class="primary-btn shrink">+ Nouveau Lot</button>
