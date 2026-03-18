@@ -8,6 +8,7 @@ if (!localStorage.getItem('users')) localStorage.setItem('users', JSON.stringify
 if (!localStorage.getItem('projects')) localStorage.setItem('projects', JSON.stringify([]));
 if (!localStorage.getItem('reports')) localStorage.setItem('reports', JSON.stringify([]));
 if (!localStorage.getItem('actors')) localStorage.setItem('actors', JSON.stringify([]));
+if (!localStorage.getItem('lots')) localStorage.setItem('lots', JSON.stringify([]));
 
 // Helpers
 const getDb = (table) => JSON.parse(localStorage.getItem(table)) || [];
@@ -20,7 +21,8 @@ const views = {
   dashboard: document.getElementById('view-dashboard'),
   projectDetail: document.getElementById('view-project-detail'),
   generator: document.getElementById('view-generator'),
-  actors: document.getElementById('view-actors')
+  actors: document.getElementById('view-actors'),
+  lots: document.getElementById('view-lots')
 };
 
 // Setup Listeners on Load
@@ -30,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupProjectListeners();
   setupGeneratorListeners();
   setupActorListeners();
+  setupLotListeners();
   
   // Check if already logged in conceptually
   const savedUserId = sessionStorage.getItem('activeUserId');
@@ -132,7 +135,7 @@ function renderDashboard() {
   
   list.innerHTML = '';
   if(allProjects.length === 0) {
-    list.innerHTML = '<p class="subtitle">Aucun projet. Créez-en un ci-dessus.</p>';
+    list.innerHTML = '<p class="subtitle">Aucun projet. CrÃ©ez-en un ci-dessus.</p>';
     return;
   }
 
@@ -221,7 +224,7 @@ function renderProjectDetail(proj) {
     const dateStr = new Date(r.createdAt).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
     const isSent = r.status === 'sent';
     const statusClass = isSent ? 'status-sent' : 'status-unsent';
-    const statusText = isSent ? 'Envoyé' : 'Brouillon';
+    const statusText = isSent ? 'EnvoyÃ©' : 'Brouillon';
 
     const card = document.createElement('div');
     card.className = 'report-card fade-in';
@@ -232,7 +235,7 @@ function renderProjectDetail(proj) {
     card.innerHTML = `
       <div class="report-info">
         <h3>Compte Rendu - ${dateStr}</h3>
-        <span>${r.data.observations.length} Observations • ${r.data.actions.length} Actions</span>
+        <span>${r.data.observations.length} Observations â€¢ ${r.data.actions.length} Actions</span>
       </div>
       <div>${badgeHtml}</div>
     `;
@@ -408,11 +411,11 @@ function renderActorsList() {
         <div class="contact">
           ${actor.email || 'Pas d\'email'} <br>
           ${actor.mobile ? 'Port: ' + actor.mobile : ''} 
-          ${actor.mobile && actor.phone ? '•' : ''} 
+          ${actor.mobile && actor.phone ? 'â€¢' : ''} 
           ${actor.phone ? 'Fixe: ' + actor.phone : ''}
-          ${!actor.mobile && !actor.phone ? 'Pas de tél' : ''}
+          ${!actor.mobile && !actor.phone ? 'Pas de tÃ©l' : ''}
         </div>
-        <button class="icon-btn mt-2" onclick="editActor('${actor.id}')">✏️ Modifier</button>
+        <button class="icon-btn mt-2" onclick="editActor('${actor.id}')">âœï¸ Modifier</button>
       </div>
     `;
     list.appendChild(card);
@@ -492,7 +495,7 @@ window.openDistributionModal = function(reportId) {
         <input type="checkbox" class="dist-actor-checkbox" value="${actor.id}" ${isChecked}>
         <div>
           <span class="title">${actor.firstname} ${actor.lastname} (${actor.company})</span>
-          <span class="desc">${actor.type} • ${actor.email || 'Email manquant'}</span>
+          <span class="desc">${actor.type} â€¢ ${actor.email || 'Email manquant'}</span>
         </div>
       `;
       list.appendChild(div);
@@ -505,6 +508,131 @@ window.openDistributionModal = function(reportId) {
 
 window.closeDocModal = function() {
   document.getElementById('distribution-modal').classList.add('hidden');
+}
+
+// --- 3.6 Lots Management Flow ---
+
+function setupLotListeners() {
+  document.getElementById('view-lots-btn').addEventListener('click', () => {
+    showView('lots');
+    renderLotsList();
+  });
+
+  document.getElementById('back-to-project-from-lots').addEventListener('click', () => {
+    showView('projectDetail');
+  });
+
+  document.getElementById('add-lot-btn').addEventListener('click', () => {
+    document.getElementById('lot-id').value = '';
+    document.getElementById('lot-form').reset();
+    document.getElementById('lot-modal-title').textContent = "Ajouter un Lot";
+    renderLotActorCheckboxes();
+    document.getElementById('lot-modal').classList.remove('hidden');
+  });
+
+  document.getElementById('lot-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const id = document.getElementById('lot-id').value || generateId();
+    const name = document.getElementById('lot-name').value;
+    
+    const checkboxes = document.querySelectorAll('.lot-actor-checkbox:checked');
+    const assignedActors = Array.from(checkboxes).map(cb => cb.value);
+
+    const lot = {
+      id: id,
+      projectId: currentProjectId,
+      name: name,
+      actors: assignedActors
+    };
+
+    const lots = getDb('lots');
+    const existingIndex = lots.findIndex(l => l.id === id);
+    if(existingIndex > -1) {
+      lots[existingIndex] = lot;
+    } else {
+      lots.push(lot);
+    }
+    saveDb('lots', lots);
+    closeLotModal();
+    renderLotsList();
+  });
+}
+
+function renderLotsList() {
+  const list = document.getElementById('lots-list');
+  const lots = getDb('lots').filter(l => l.projectId === currentProjectId);
+  list.innerHTML = '';
+
+  if(lots.length === 0) {
+    list.innerHTML = '<p class="subtitle">Aucun lot. Ajoutez un lot pour organiser les responsabilités.</p>';
+    return;
+  }
+
+  const allActors = getDb('actors').filter(a => a.projectId === currentProjectId);
+
+  lots.forEach(lot => {
+    const card = document.createElement('div');
+    card.className = 'grid-card lot-card fade-in';
+    
+    const assignedActorNames = (lot.actors || []).map(actorId => {
+      const actor = allActors.find(a => a.id === actorId);
+      return actor ? `${actor.firstname} ${actor.lastname}` : 'Inconnu';
+    }).join(', ');
+
+    card.innerHTML = `
+      <div class="grid-card-content" style="padding: 1rem;">
+        <h3>${lot.name}</h3>
+        <div class="desc mt-2">
+          <strong>Acteurs assignés:</strong><br>
+          ${assignedActorNames || 'Aucun acteur assigné'}
+        </div>
+        <button class="icon-btn mt-3" onclick="editLot('${lot.id}')">✏️ Modifier</button>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+window.editLot = function(id) {
+  const lot = getDb('lots').find(l => l.id === id);
+  if(!lot) return;
+
+  document.getElementById('lot-id').value = lot.id;
+  document.getElementById('lot-name').value = lot.name;
+  
+  renderLotActorCheckboxes(lot.actors || []);
+
+  document.getElementById('lot-modal-title').textContent = "Modifier le Lot";
+  document.getElementById('lot-modal').classList.remove('hidden');
+}
+
+window.closeLotModal = function() {
+  document.getElementById('lot-modal').classList.add('hidden');
+}
+
+function renderLotActorCheckboxes(selectedActorIds = []) {
+  const container = document.getElementById('lot-actors-checkboxes');
+  const actors = getDb('actors').filter(a => a.projectId === currentProjectId);
+  container.innerHTML = '';
+
+  if(actors.length === 0) {
+    container.innerHTML = '<p class="desc text-sm">Aucun acteur disponible.</p>';
+    return;
+  }
+
+  actors.forEach(actor => {
+    const isChecked = selectedActorIds.includes(actor.id) ? 'checked' : '';
+    const div = document.createElement('label');
+    div.className = 'checkbox-item';
+    div.innerHTML = `
+      <input type="checkbox" class="lot-actor-checkbox" value="${actor.id}" ${isChecked}>
+      <div>
+        <span class="title">${actor.firstname} ${actor.lastname}</span>
+        <span class="desc">${actor.company}</span>
+      </div>
+    `;
+    container.appendChild(div);
+  });
 }
 
 // --- 4. Generator (MVP) Flow ---
@@ -528,12 +656,12 @@ function setupGeneratorListeners() {
     // Simulate LLM Call
     setTimeout(() => {
         const mockData = {
-          observations: ["Fissure observée sur le mur porteur de la façade ouest."],
-          actions: [
-            { task: "Réparer la fissure du mur porteur", owner: "Jean", deadline: "Vendredi" }
-          ],
-          blockers: ["Accès au chantier bloqué"],
-          points_to_verify: ["Vérifier l'étanchéité"]
+          entries: [
+            { html: "Fissure observÃ©e sur le mur porteur de la fa\u00e7ade ouest.", type: "Observation", actorId: "", deadline: "" },
+            { html: "<b>R\u00e9parer la fissure du mur porteur</b> â€” intervention urgente Ã  planifier.", type: "Action", actorId: "", deadline: "Vendredi" },
+            { html: "Acc\u00e8s au chantier bloqu\u00e9 par d\u00e9p\u00f4t de mat\u00e9riaux en zone de passage.", type: "Point bloquant", actorId: "", deadline: "" },
+            { html: "V\u00e9rifier l\u2019\u00e9tanch\u00e9it\u00e9 en toiture ap\u00e8s les pluies.", type: "\u00c0 v\u00e9rifier", actorId: "", deadline: "" }
+          ]
         };
         
         populateForm(mockData);
@@ -541,7 +669,7 @@ function setupGeneratorListeners() {
         loading.classList.add('hidden');
         b.disabled = false;
         
-        // Hide input after generating to focus on editing (creates a clean page break for save)
+        // Hide input after generating to focus on editing
         document.getElementById('input-section').classList.add('hidden');
     }, 1500);
   });
@@ -576,42 +704,31 @@ function resetGeneratorUI() {
   document.getElementById('output-section').classList.add('hidden');
   document.getElementById('notes-input').value = '';
   document.getElementById('error-message').classList.add('hidden');
-  
-  // clear lists
-  document.getElementById('observations-container').innerHTML = '';
-  document.getElementById('actions-tbody').innerHTML = '';
-  document.getElementById('blockers-container').innerHTML = '';
-  document.getElementById('points-to-verify-container').innerHTML = '';
+  const entriesContainer = document.getElementById('entries-container');
+  if(entriesContainer) entriesContainer.innerHTML = '';
   document.getElementById('photo-gallery').innerHTML = '';
 }
 
 // Scrape the DOM to save the edited form state
 function saveCurrentReportForm() {
   const data = {
-    observations: scrapeList('observations-container'),
-    actions: scrapeTable(),
-    blockers: scrapeList('blockers-container'),
-    points_to_verify: scrapeList('points-to-verify-container'),
-    // Note: Saving photos to LocalStorage can exceed 5MB quota very quickly. 
-    // For this prototype, we're mimicking success, but in a real DB we'd save image URLs.
+    attendance: scrapeAttendance(),
+    entries: scrapeEntries(),
   };
 
   const reports = getDb('reports');
   
   if (currentReportId) {
-    // Update existing
     const idx = reports.findIndex(r => r.id === currentReportId);
     if(idx > -1) {
       reports[idx].data = data;
-      // We do not change the status automatically, let the user change it.
     }
   } else {
-    // Create new
     const newReport = {
       id: generateId(),
       projectId: currentProjectId,
       createdAt: new Date().toISOString(),
-      status: 'unsent', // Default to yellow
+      status: 'unsent',
       data: data
     };
     reports.push(newReport);
@@ -620,134 +737,282 @@ function saveCurrentReportForm() {
   saveDb('reports', reports);
 }
 
-function scrapeList(containerId) {
-  const container = document.getElementById(containerId);
-  const textareas = container.querySelectorAll('textarea');
-  return Array.from(textareas).map(ta => ta.value).filter(v => v.trim() !== '');
+function scrapeAttendance() {
+  const container = document.getElementById('attendance-container');
+  if(!container) return [];
+  const rows = container.querySelectorAll('.attendance-row');
+  return Array.from(rows).map(tr => ({
+    actorId: tr.dataset.actorId,
+    status: tr.querySelector('.attendance-status-select').value,
+    comment: tr.querySelector('.attendance-comment-input').value.trim()
+  }));
 }
 
-function scrapeTable() {
-  const tbody = document.getElementById('actions-tbody');
-  const rows = tbody.querySelectorAll('tr');
-  return Array.from(rows).map(tr => {
-    const inputs = tr.querySelectorAll('input');
-    return {
-      task: inputs[0].value.trim(),
-      owner: inputs[1].value.trim(),
-      deadline: inputs[2].value.trim()
-    };
-  }).filter(a => a.task || a.owner || a.deadline);
+function scrapeEntries() {
+  const container = document.getElementById('entries-container');
+  if(!container) return [];
+  const cards = container.querySelectorAll('.entry-card');
+  return Array.from(cards).map(card => ({
+    html: card.querySelector('.entry-body').innerHTML,
+    type: card.querySelector('.entry-type-select').value,
+    actorId: card.querySelector('.entry-actor-select').value,
+    actorName: card.querySelector('.entry-actor-select').selectedOptions[0]?.text || '',
+    deadline: card.querySelector('.entry-deadline-text').value.trim()
+  })).filter(e => e.html.trim() && e.html.trim() !== '<br>');
 }
 
-// --- Generic Render Helpers (same as MVP) ---
+// --- Generic Render Helpers ---
 function populateForm(data) {
   const getEl = id => document.getElementById(id);
-  getEl('observations-container').innerHTML = '';
-  getEl('blockers-container').innerHTML = '';
-  getEl('points-to-verify-container').innerHTML = '';
-  getEl('actions-tbody').innerHTML = '';
+  if(getEl('attendance-container')) renderAttendance(data.attendance);
 
-  (data.observations || []).forEach(v => renderListItem(getEl('observations-container'), v));
-  (data.blockers || []).forEach(v => renderListItem(getEl('blockers-container'), v, 'alert-item'));
-  (data.points_to_verify || []).forEach(v => renderListItem(getEl('points-to-verify-container'), v, 'warning-item'));
-  (data.actions || []).forEach(a => renderActionRow(a.task, a.owner, a.deadline));
-
-  if(!(data.observations?.length)) renderListItem(getEl('observations-container'), "");
-  if(!(data.actions?.length)) renderActionRow("", "", "");
+  const entriesContainer = getEl('entries-container');
+  if(entriesContainer) {
+    entriesContainer.innerHTML = '';
+    if (data.entries && data.entries.length > 0) {
+      data.entries.forEach(e => addEntry(e));
+    } else {
+      // Legacy fallback: convert old observations/actions to entries
+      (data.observations || []).forEach(v => addEntry({ html: v, type: 'Observation', actorId: '', deadline: '' }));
+      (data.actions || []).forEach(a => addEntry({ html: `<b>${a.task}</b>`, type: 'Action', actorId: '', deadline: a.deadline || '' }));
+      (data.blockers || []).forEach(v => addEntry({ html: v, type: 'Point bloquant', actorId: '', deadline: '' }));
+      (data.points_to_verify || []).forEach(v => addEntry({ html: v, type: '\u00c0 v\u00e9rifier', actorId: '', deadline: '' }));
+      if(!data.entries && !data.observations && !data.actions && !data.blockers && !data.points_to_verify) {
+        addEntry();
+      }
+    }
+    if(entriesContainer.children.length === 0) addEntry();
+  }
 }
+
+function renderAttendance(savedAttendance) {
+  const container = document.getElementById('attendance-container');
+  if(!container) return;
+  
+  let projectActors = getDb('actors').filter(a => a.projectId === currentProjectId);
+  
+  const savedMap = {};
+  if (savedAttendance && Array.isArray(savedAttendance)) {
+    savedAttendance.forEach(a => { savedMap[a.actorId] = a; });
+  }
+
+  const projectLots = getDb('lots').filter(l => l.projectId === currentProjectId);
+  const getActorLotName = (actorId) => {
+    const assignedLots = projectLots.filter(l => (l.actors || []).includes(actorId));
+    if(assignedLots.length > 0) return assignedLots.map(l => l.name).join(', ');
+    return '';
+  };
+
+  let attendanceList = projectActors.map(actor => {
+    const saved = savedMap[actor.id] || {};
+    const lotName = getActorLotName(actor.id);
+    let roleOrLot = actor.role || actor.type;
+    if (lotName) roleOrLot += ` - Lot: ${lotName}`;
+    
+    return {
+      actorId: actor.id,
+      name: `${actor.firstname} ${actor.lastname}`,
+      company: actor.company,
+      role: roleOrLot,
+      type: actor.type,
+      status: saved.status || 'Présent',
+      comment: saved.comment || ''
+    };
+  });
+  
+  const coordTypes = ["Maitre d'Ouvrage", "Maitre d'Oeuvre", "Bureau d'Etudes", "CSPS", "Bureau de Controle"];
+  
+  const coordList = attendanceList.filter(a => coordTypes.includes(a.type));
+  const execList = attendanceList.filter(a => !coordTypes.includes(a.type));
+  
+  let html = `<table class="actions-table" style="width:100%; text-align:left;">`;
+  html += `<thead><tr><th>Acteur</th><th>SociÃ©tÃ©</th><th>RÃ´le / Lot</th><th>Statut</th><th>Commentaire</th></tr></thead>`;
+  
+  const buildRows = (list, groupName) => {
+    if(list.length === 0) return '';
+    let res = `<tr><th colspan="5" style="background-color: var(--bg-color); padding: 0.5rem; text-transform: uppercase; font-size: 0.8rem; color: var(--text-color);">${groupName}</th></tr>`;
+    res += list.map(a => {
+      const isAbsent = a.status === 'Absent';
+      const rowClass = isAbsent ? 'row-absent' : '';
+      return `
+      <tr class="attendance-row ${rowClass}" data-actor-id="${a.actorId}">
+        <td>${a.name}</td>
+        <td>${a.company}</td>
+        <td>${a.role}</td>
+        <td>
+          <select class="text-input attendance-status-select" style="padding: 0.25rem; font-size: 0.9rem;" onchange="updateAttendanceRowStyle(this)">
+            <option value="PrÃ©sent" ${a.status === 'PrÃ©sent' ? 'selected' : ''}>PrÃ©sent</option>
+            <option value="Absent" ${a.status === 'Absent' ? 'selected' : ''}>Absent</option>
+            <option value="ExcusÃ©" ${a.status === 'ExcusÃ©' ? 'selected' : ''}>ExcusÃ©</option>
+            <option value="Non requis" ${a.status === 'Non requis' ? 'selected' : ''}>Non requis</option>
+          </select>
+        </td>
+        <td><input type="text" class="text-input attendance-comment-input" style="padding: 0.25rem;" placeholder="Commentaire..." value="${a.comment}"></td>
+      </tr>`;
+    }).join('');
+    return res;
+  };
+
+  html += `<tbody>`;
+  html += buildRows(coordList, "Coordination & MaÃ®trise d'Å“uvre");
+  html += buildRows(execList, "Entreprises d'exÃ©cution (Lots)");
+  html += `</tbody></table>`;
+  
+  if(attendanceList.length === 0) {
+    html = `<p class="subtitle" style="margin-left:1rem; margin-bottom:1rem;">Aucun acteur dans le projet. Ajoutez-en dans le carnet d'adresses.</p>`;
+  }
+  
+  container.innerHTML = html;
+}
+
+window.updateAttendanceRowStyle = function(selectElem) {
+  const tr = selectElem.closest('tr');
+  if (selectElem.value === 'Absent') {
+    tr.classList.add('row-absent');
+  } else {
+    tr.classList.remove('row-absent');
+  }
+};
 
 function renderListItem(container, value = "", customClass = "") {
   const div = document.createElement('div');
   div.className = `list-item ${customClass}`;
   div.innerHTML = `
     <textarea rows="1" oninput="this.style.height='';this.style.height=this.scrollHeight+'px'">${value}</textarea>
-    <button class="delete-btn" onclick="this.parentElement.remove()">✖</button>`;
+    <button class="delete-btn" onclick="this.parentElement.remove()">âœ–</button>`;
   container.appendChild(div);
   setTimeout(() => { const t=div.querySelector('textarea'); t.style.height='auto'; t.style.height=t.scrollHeight+'px'; }, 0);
 }
 
 function addListItem(containerId, cls = "") { renderListItem(document.getElementById(containerId), "", cls); }
 
-let activeResponsableInput = null;
-
-function showActorDropdown(inputElem) {
-  const actors = getDb('actors').filter(a => a.projectId === currentProjectId);
-  if(actors.length === 0) return;
-
-  const dropdown = document.getElementById('actor-dropdown');
-  dropdown.innerHTML = '';
-  
-  const filterText = inputElem.value.toLowerCase();
-  let hasMatches = false;
-  
-  actors.forEach(a => {
-    const fullName = `${a.firstname} ${a.lastname}`;
-    const searchString = `${fullName} ${a.company} ${a.type}`.toLowerCase();
-    if(filterText && !searchString.includes(filterText)) return;
-    
-    hasMatches = true;
-    const item = document.createElement('div');
-    item.className = 'actor-dropdown-item';
-    item.innerHTML = `
-      <span class="actor-dropdown-name">${fullName}</span>
-      <span class="actor-dropdown-company">${a.company} - ${a.type}</span>
-    `;
-    item.addEventListener('mousedown', (e) => {
-      e.preventDefault(); // Prevents input from losing focus before click resolves
-      inputElem.value = fullName;
-      inputElem.style.color = 'inherit';
-      inputElem.style.fontStyle = 'normal';
-      inputElem.style.fontWeight = 'normal';
-      dropdown.classList.add('hidden');
-    });
-    dropdown.appendChild(item);
-  });
-  
-  if(!hasMatches) {
-     dropdown.classList.add('hidden');
-     return;
-  }
-
-  const rect = inputElem.getBoundingClientRect();
-  dropdown.style.top = (rect.bottom + window.scrollY) + 'px';
-  dropdown.style.left = (rect.left + window.scrollX) + 'px';
-  dropdown.style.width = Math.max(rect.width, 220) + 'px';
-  dropdown.classList.remove('hidden');
-  activeResponsableInput = inputElem;
-}
-
-document.addEventListener('mousedown', (e) => {
-  const dropdown = document.getElementById('actor-dropdown');
-  if(dropdown && !dropdown.contains(e.target) && e.target !== activeResponsableInput) {
-    dropdown.classList.add('hidden');
-    activeResponsableInput = null;
-  }
-});
-
 function renderActionRow(t="", o="", d="") {
   const tr = document.createElement('tr');
-  const valC = (v) => v === "à vérifier" || v === "" ? "style='color:#ef4444;font-style:italic;font-weight:500;'" : "";
+  const valC = (v) => v === "Ã  vÃ©rifier" || v === "" ? "style='color:#ef4444;font-style:italic;font-weight:500;'" : "";
+  
+  const actors = getDb('actors').filter(a => a.projectId === currentProjectId);
+  let optionsHtml = `<option value="">Saisir responsable...</option>`;
+  
+  let selectedActorMatched = false;
+  actors.forEach(a => {
+    const fullName = `${a.firstname} ${a.lastname}`;
+    const isSelected = (o && fullName.toLowerCase().includes(o.toLowerCase())) || (o === fullName) ? 'selected' : '';
+    if(isSelected) selectedActorMatched = true;
+    optionsHtml += `<option value="${fullName}" ${isSelected}>${fullName} (${a.company})</option>`;
+  });
+  
+  if (o && !selectedActorMatched && o !== "Ã  vÃ©rifier") {
+    optionsHtml += `<option value="${o}" selected>${o}</option>`;
+  } else if (o === "Ã  vÃ©rifier") {
+    optionsHtml += `<option value="Ã  vÃ©rifier" selected disabled style="color:red">Ã  vÃ©rifier</option>`;
+  }
+
   tr.innerHTML = `
     <td><input type="text" value="${t}" placeholder="Action"></td>
-    <td><input type="text" value="${o}" placeholder="Responsable" class="responsable-input" ${valC(o)}></td>
-    <td><input type="text" value="${d}" placeholder="Délai" ${valC(d)}></td>
-    <td style="width:40px"><button class="delete-btn" onclick="this.parentElement.parentElement.remove()">✖</button></td>`;
+    <td><select class="text-input responsable-input" ${valC(o)}>${optionsHtml}</select></td>
+    <td style="display: flex; gap: 0.5rem; justify-content: space-between; align-items: center;">
+      <input type="text" value="${d}" placeholder="DÃ©lai" class="text-input" style="flex: 1;" ${valC(d)}>
+      <div style="position: relative; width: 32px; height: 32px; flex-shrink: 0;" title="Choisir une date">
+        <input type="date" style="position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; left: 0; top: 0;" onchange="if(this.value){ const dVal = new Date(this.value); if(!isNaN(dVal)){ const txt = this.parentElement.previousElementSibling; txt.value = dVal.toLocaleDateString('fr-FR', {day: '2-digit', month: '2-digit', year: 'numeric'}); txt.style.color='inherit'; txt.style.fontStyle='normal'; txt.style.fontWeight='normal'; } }">
+        <span style="font-size: 1.25rem; pointer-events: none; position: absolute; top: 1px; left: 4px;">ðŸ“…</span>
+      </div>
+    </td>
+    <td style="width:40px"><button class="delete-btn" onclick="this.parentElement.parentElement.remove()">âœ–</button></td>`;
   document.getElementById('actions-tbody').appendChild(tr);
   
-  const inputs = tr.querySelectorAll('input');
-  inputs.forEach(i => i.addEventListener('input', e=>{ e.target.style.color='inherit'; e.target.style.fontStyle='normal'; e.target.style.fontWeight='normal'; }));
-  
-  const respInput = tr.querySelector('.responsable-input');
-  respInput.addEventListener('focus', () => showActorDropdown(respInput));
-  respInput.addEventListener('input', () => showActorDropdown(respInput));
+  const inputs = tr.querySelectorAll('input, select');
+  inputs.forEach(i => i.addEventListener('input', e=>{ 
+    e.target.style.color='inherit'; 
+    e.target.style.fontStyle='normal'; 
+    e.target.style.fontWeight='normal'; 
+  }));
 }
 function addActionRow() { renderActionRow(); }
 
+// ============================================================
+// RICH TEXT ENTRY SYSTEM
+// ============================================================
+window.addEntry = function(data = {}) {
+  const container = document.getElementById('entries-container');
+  if(!container) return;
+
+  const actors = getDb('actors').filter(a => a.projectId === currentProjectId);
+
+  // Build actor options
+  let actorOptions = `<option value="">â€” Aucun acteur â€”</option>`;
+  actors.forEach(a => {
+    const fullName = `${a.firstname} ${a.lastname}`;
+    const sel = data.actorId === a.id ? 'selected' : '';
+    actorOptions += `<option value="${a.id}" ${sel}>${fullName} (${a.company})</option>`;
+  });
+
+  const typeOptions = ['Observation', 'Action', 'Point bloquant', 'Ã€ vÃ©rifier']
+    .map(t => `<option value="${t}" ${(data.type || 'Observation') === t ? 'selected' : ''}>${t}</option>`)
+    .join('');
+
+  const card = document.createElement('div');
+  card.className = 'entry-card fade-in';
+  card.innerHTML = `
+    <div class="entry-toolbar">
+      <button type="button" class="toolbar-btn" title="Gras" onclick="document.execCommand('bold')"><b>B</b></button>
+      <button type="button" class="toolbar-btn" title="Italique" onclick="document.execCommand('italic')"><i>I</i></button>
+      <button type="button" class="toolbar-btn" title="SoulignÃ©" onclick="document.execCommand('underline')"><u>S</u></button>
+      <button type="button" class="toolbar-btn" title="BarrÃ©" onclick="document.execCommand('strikeThrough')"><s>X</s></button>
+      <span class="toolbar-separator"></span>
+      <label class="toolbar-btn color-btn" title="Couleur du texte">
+        ðŸŽ¨
+        <input type="color" class="color-picker-input" onchange="document.execCommand('foreColor', false, this.value)">
+      </label>
+      <button type="button" class="toolbar-btn" title="Sans mise en forme" onclick="document.execCommand('removeFormat')" style="font-size:0.75rem;">âœ– Fmt</button>
+    </div>
+    <div class="entry-body" contenteditable="true" data-placeholder="RÃ©digez votre remarque ici...">${data.html || ''}</div>
+    <div class="entry-meta">
+      <select class="text-input entry-type-select">
+        ${typeOptions}
+      </select>
+      <select class="text-input entry-actor-select">
+        ${actorOptions}
+      </select>
+      <div class="entry-deadline-wrapper">
+        <input type="text" class="text-input entry-deadline-text" placeholder="Date limite..." value="${data.deadline || ''}">
+        <div class="deadline-icon-wrapper" title="Choisir une date">
+          <input type="date" class="deadline-date-picker" onchange="
+            if(this.value){
+              const d = new Date(this.value);
+              if(!isNaN(d)){
+                this.closest('.entry-deadline-wrapper').querySelector('.entry-deadline-text').value =
+                  d.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'});
+              }
+            }">
+          <span class="deadline-icon-label">ðŸ“…</span>
+        </div>
+      </div>
+      <button type="button" class="delete-btn entry-delete-btn" onclick="this.closest('.entry-card').remove()" title="Supprimer">âœ–</button>
+    </div>
+  `;
+
+  // Update type badge color on change
+  const typeSelect = card.querySelector('.entry-type-select');
+  const updateTypeStyle = () => {
+    const colors = {
+      'Observation': '#2563eb',
+      'Action': '#7c3aed',
+      'Point bloquant': '#ef4444',
+      'Ã€ vÃ©rifier': '#f59e0b'
+    };
+    typeSelect.style.borderLeftColor = colors[typeSelect.value] || '#2563eb';
+    typeSelect.style.borderLeftWidth = '4px';
+  };
+  typeSelect.addEventListener('change', updateTypeStyle);
+  updateTypeStyle();
+
+  container.appendChild(card);
+};
 function addPhotoToGallery(imgSrc) {
   const div = document.createElement('div');
   div.className = 'photo-card fade-in';
   div.innerHTML = `
-    <button class="remove-photo-btn" onclick="this.parentElement.remove()">✖</button>
+    <button class="remove-photo-btn" onclick="this.parentElement.remove()">âœ–</button>
     <img src="${imgSrc}" alt="Photo">
     <textarea placeholder="Commentaire..." oninput="this.style.height='';this.style.height=this.scrollHeight+'px'"></textarea>`;
   document.getElementById('photo-gallery').appendChild(div);

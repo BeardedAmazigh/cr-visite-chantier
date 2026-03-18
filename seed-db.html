@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Installation des données de test...</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding-top: 50px; }
+  </style>
+</head>
+<body>
+  <h2>Préparation des données de test (Acteurs, Projet)...</h2>
+  <script>
+    // Configuration des données fictives
+    const DEMO_USER_ID = "testuser123";
+    const DEMO_PROJ_ID = "testproj123";
+    
+    // 1. Initialiser l'utilisateur
+    const users = JSON.parse(localStorage.getItem('users')) || {};
+    users[DEMO_USER_ID] = { id: DEMO_USER_ID, email: "chef@chantier.com" };
+    localStorage.setItem('users', JSON.stringify(users));
+    
+    // 2. Initialiser le projet
+    let projects = JSON.parse(localStorage.getItem('projects')) || [];
+    if (!projects.find(p => p.id === DEMO_PROJ_ID)) {
+      projects.push({ 
+         id: DEMO_PROJ_ID, 
+         name: "Chantier de Démonstration", 
+         userId: DEMO_USER_ID, 
+         createdAt: new Date().toISOString(),
+         coverPhoto: "" 
+      });
+      localStorage.setItem('projects', JSON.stringify(projects));
+    }
+    
+    // 3. Initialiser les acteurs pour ce projet
+    let actors = JSON.parse(localStorage.getItem('actors')) || [];
+    // Nettoyer les anciens acteurs du projet demo si existants pour éviter les doublons
+    actors = actors.filter(a => a.projectId !== DEMO_PROJ_ID);
+    
+    const demoActors = [
+       { id: "a1", projectId: DEMO_PROJ_ID, type: "Maitre d'Ouvrage", company: "Mairie Centrale", firstname: "Jean", lastname: "Dupont", role: "Directeur de projet" },
+       { id: "a2", projectId: DEMO_PROJ_ID, type: "Maitre d'Oeuvre", company: "ArchiStudio", firstname: "Marie", lastname: "Leblanc", role: "Architecte" },
+       { id: "a3", projectId: DEMO_PROJ_ID, type: "CSPS", company: "Securibat", firstname: "Marc", lastname: "Safe", role: "Coordonnateur SPS" },
+       { id: "a4", projectId: DEMO_PROJ_ID, type: "Entreprise", company: "GrosOeuvre SA", firstname: "Luc", lastname: "Béton", role: "Lot 1 - Gros Oeuvre" },
+       { id: "a5", projectId: DEMO_PROJ_ID, type: "Entreprise", company: "ElecPro", firstname: "Sophie", lastname: "Ampère", role: "Lot 2 - Electricité" },
+       { id: "a6", projectId: DEMO_PROJ_ID, type: "Entreprise", company: "Plombier Express", firstname: "Paul", lastname: "Tuyau", role: "Lot 3 - Plomberie" }
+    ];
+    
+    actors.push(...demoActors);
+    localStorage.setItem('actors', JSON.stringify(actors));
+    
+    // 3.5 Initialiser les lots
+    let initLots = JSON.parse(localStorage.getItem('lots')) || [];
+    initLots = initLots.filter(l => l.projectId !== DEMO_PROJ_ID);
+    initLots.push(
+       { id: "l1", projectId: DEMO_PROJ_ID, name: "Lot 1 - Gros Oeuvre", actors: ["a4"] },
+       { id: "l2", projectId: DEMO_PROJ_ID, name: "Lot 2 - Electricité", actors: ["a5"] },
+       { id: "l3", projectId: DEMO_PROJ_ID, name: "Lot 3 - Plomberie", actors: ["a6"] }
+    );
+    localStorage.setItem('lots', JSON.stringify(initLots));
+    
+    // 4. Force l'authentification de la session
+    sessionStorage.setItem('activeUserId', DEMO_USER_ID);
+    
+    // 5. Redirection vers l'application
+    setTimeout(() => {
+      window.location.href = 'index.html';
+    }, 800);
+  </script>
+</body>
+</html>

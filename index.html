@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Générateur de Compte Rendu - Chantier V2</title>
+  <title>GÃ©nÃ©rateur de Compte Rendu - Chantier V2</title>
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -15,7 +15,7 @@
     <div id="view-auth" class="view">
       <div class="app-header">
         <h1>Bienvenue</h1>
-        <p>Connectez-vous à votre espace personnel.</p>
+        <p>Connectez-vous Ã  votre espace personnel.</p>
       </div>
       <div class="card auth-card">
         <form id="auth-form">
@@ -25,9 +25,9 @@
           </div>
           <div class="form-group">
             <label>Mot de passe</label>
-            <input type="password" id="auth-password" required placeholder="••••••••" class="text-input">
+            <input type="password" id="auth-password" required placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" class="text-input">
           </div>
-          <button type="submit" class="primary-btn">Se connecter / Créer un compte</button>
+          <button type="submit" class="primary-btn">Se connecter / CrÃ©er un compte</button>
         </form>
       </div>
     </div>
@@ -38,7 +38,7 @@
         <h2>Mes Projets</h2>
         <div class="user-menu">
            <span id="user-display"></span>
-           <button id="logout-btn" class="text-btn">Déconnexion</button>
+           <button id="logout-btn" class="text-btn">DÃ©connexion</button>
         </div>
       </header>
       
@@ -51,12 +51,12 @@
             <div class="image-upload-wrapper" style="margin: 0;">
                <input type="file" id="project-photo-upload" accept="image/*" class="hidden-input">
                <label for="project-photo-upload" class="upload-btn" style="margin: 0; width: 100%; justify-content: center;">
-                 <span class="icon">📸</span> Photo de couverture
+                 <span class="icon">ðŸ“¸</span> Photo de couverture
                </label>
             </div>
             <img id="project-photo-preview" src="" class="hidden" style="width: 100%; height: 80px; object-fit: cover; border-radius: 8px; margin-top: 0.5rem; border: 1px solid var(--border);">
           </div>
-          <button id="create-project-btn" class="primary-btn shrink" style="height: 46px;">Créer Projet</button>
+          <button id="create-project-btn" class="primary-btn shrink" style="height: 46px;">CrÃ©er Projet</button>
         </div>
         
         <div id="projects-list" class="grid-list">
@@ -69,7 +69,7 @@
     <div id="view-project-detail" class="view hidden">
       <header class="navbar" style="border-bottom: none; margin-bottom: 0;">
         <div class="nav-left">
-          <button id="back-to-dashboard" class="icon-btn">← Retour</button>
+          <button id="back-to-dashboard" class="icon-btn">â† Retour</button>
           <h2 id="current-project-title">Titre du Projet</h2>
         </div>
         <div class="nav-right">
@@ -81,15 +81,18 @@
       <div class="project-banner">
          <img id="detail-project-cover" src="" class="hidden">
          <div class="project-banner-overlay">
-           <div class="banner-left">
+           <div class="banner-left" style="display:flex; gap:0.75rem; flex-wrap:wrap;">
              <button id="view-actors-btn" class="elegant-btn">
-               <span class="icon">👥</span> Gérer les Acteurs du Projet
+               <span class="icon">ðŸ‘¥</span> GÃ©rer les Acteurs du Projet
              </button>
+              <button id="view-lots-btn" class="elegant-btn">
+                <span class="icon">📦</span> Gérer les Lots
+              </button>
            </div>
            <div class="banner-right">
              <input type="file" id="edit-project-cover" accept="image/*" class="hidden-input">
              <label for="edit-project-cover" class="edit-cover-btn">
-               <span class="icon">📸</span> Modifier la couverture
+               <span class="icon">ðŸ“¸</span> Modifier la couverture
              </label>
            </div>
          </div>
@@ -106,7 +109,7 @@
     <!-- ==================== VIEW: GENERATOR (THE MVP) ==================== -->
     <div id="view-generator" class="view hidden">
       <header class="navbar">
-        <button id="cancel-report-btn" class="icon-btn">← Annuler</button>
+        <button id="cancel-report-btn" class="icon-btn">â† Annuler</button>
         <h2>Nouveau CR</h2>
       </header>
 
@@ -118,7 +121,7 @@
           <textarea id="notes-input" placeholder="Ex: Le mur porteur fissure..."></textarea>
           
           <button id="generate-btn" class="primary-btn">
-            <span class="icon">✨</span> Générer le Brouillon
+            <span class="icon">âœ¨</span> GÃ©nÃ©rer le Brouillon
           </button>
           <div id="loading" class="hidden">
              <div class="spinner"></div>
@@ -127,65 +130,43 @@
           <div id="error-message" class="error hidden"></div>
         </section>
 
-        <!-- Section 2 : Édition du compte rendu (Output) -->
+        <!-- Section 2 : Ã‰dition du compte rendu (Output) -->
         <section id="output-section" class="card hidden slide-up">
           <div class="output-header">
-            <h2>2. Compte Rendu Structuré</h2>
+            <h2>2. Compte Rendu StructurÃ©</h2>
             <div class="actions">
               <button id="save-draft-btn" class="secondary-btn">Enregistrer Brouillon</button>
               <button id="print-btn" class="primary-btn">Exporter PDF</button>
             </div>
           </div>
           
-          <p class="subtitle">Vous pouvez modifier les champs ci-dessous avant l'enregistrement.</p>
+          <p class="subtitle">RÃ©digez vos remarques, assignez un acteur et une date limite pour chaque entrÃ©e.</p>
+
+          <!-- Attendance -->
+          <div class="form-group">
+            <label>PrÃ©sences</label>
+            <div id="attendance-container" class="table-container">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
 
           <!-- Photos -->
           <div class="form-group">
-            <label>Photos & Annotations</label>
+            <label>Photos &amp; Annotations</label>
             <div class="image-upload-wrapper">
                <input type="file" id="photo-upload" accept="image/*" multiple class="hidden-input">
                <label for="photo-upload" class="upload-btn">
-                 <span class="icon">📸</span> Ajouter des photos
+                 <span class="icon">ðŸ“¸</span> Ajouter des photos
                </label>
             </div>
             <div id="photo-gallery" class="photo-gallery"></div>
           </div>
 
-          <!-- Fields -->
+          <!-- Unified Entries -->
           <div class="form-group">
-            <label>Observations</label>
-            <div id="observations-container" class="list-container editable-list"></div>
-            <button class="add-btn" onclick="addListItem('observations-container')">+ Ajouter observation</button>
-          </div>
-
-          <div class="form-group">
-            <label>Actions à réaliser</label>
-            <div id="actions-container" class="table-container">
-              <table class="actions-table">
-                <thead>
-                  <tr>
-                    <th>Tâche</th>
-                    <th>Responsable</th>
-                    <th>Délai</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody id="actions-tbody"></tbody>
-              </table>
-            </div>
-            <button class="add-btn" onclick="addActionRow()">+ Ajouter action</button>
-          </div>
-
-          <div class="form-group">
-            <label>Points Bloquants</label>
-            <div id="blockers-container" class="list-container editable-list alert-list"></div>
-            <button class="add-btn" onclick="addListItem('blockers-container', 'alert-item')">+ Ajouter point bloquant</button>
-          </div>
-
-          <div class="form-group">
-            <label>Points à vérifier</label>
-            <div id="points-to-verify-container" class="list-container editable-list warning-list"></div>
-            <button class="add-btn" onclick="addListItem('points-to-verify-container', 'warning-item')">+ Ajouter point à vérifier</button>
+            <label>Remarques &amp; Actions</label>
+            <div id="entries-container"></div>
+            <button class="add-btn" id="add-entry-btn" onclick="addEntry()">+ Ajouter une entrÃ©e</button>
           </div>
         </section>
       </main>
@@ -195,7 +176,7 @@
     <div id="view-actors" class="view hidden">
       <header class="navbar">
         <div class="nav-left">
-          <button id="back-to-project-from-actors" class="icon-btn">← Retour au Projet</button>
+          <button id="back-to-project-from-actors" class="icon-btn">â† Retour au Projet</button>
           <h2>Carnet d'adresses (Acteurs)</h2>
         </div>
         <button id="add-actor-btn" class="primary-btn shrink">+ Nouvel Acteur</button>
@@ -203,6 +184,22 @@
       <main class="main-content">
         <div id="actors-list" class="grid-list">
           <!-- Actors rendered here -->
+        </div>
+      </main>
+    </div>
+
+    <!-- ==================== VIEW: LOTS ==================== -->
+    <div id="view-lots" class="view hidden">
+      <header class="navbar">
+        <div class="nav-left">
+          <button id="back-to-project-from-lots" class="icon-btn">â† Retour au Projet</button>
+          <h2>Lots du Projet</h2>
+        </div>
+        <button id="add-lot-btn" class="primary-btn shrink">+ Nouveau Lot</button>
+      </header>
+      <main class="main-content">
+        <div id="lots-list" class="grid-list">
+          <!-- Lots rendered here -->
         </div>
       </main>
     </div>
@@ -216,14 +213,14 @@
     <div class="modal-content card">
       <div class="modal-header">
         <h2 id="actor-modal-title">Ajouter un acteur</h2>
-        <button class="icon-btn close-modal-btn" onclick="closeActorModal()">✖</button>
+        <button class="icon-btn close-modal-btn" onclick="closeActorModal()">âœ–</button>
       </div>
       <form id="actor-form" class="modal-body">
         <input type="hidden" id="actor-id">
         <div class="avatar-upload-wrapper">
            <label for="actor-photo" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center;">
              <img id="actor-photo-preview" src="" class="hidden">
-             <div id="actor-photo-placeholder" class="avatar-placeholder">📸 Photo</div>
+             <div id="actor-photo-placeholder" class="avatar-placeholder">ðŸ“¸ Photo</div>
            </label>
            <input type="file" id="actor-photo" accept="image/*" class="hidden-input">
         </div>
@@ -232,25 +229,25 @@
           <div class="form-group flex-1">
             <label>Type d'acteur *</label>
             <select id="actor-type" class="text-input" required>
-              <option value="Maitre d'Ouvrage">Maître d'Ouvrage</option>
-              <option value="Maitre d'Oeuvre">Maître d'Oeuvre</option>
+              <option value="Maitre d'Ouvrage">MaÃ®tre d'Ouvrage</option>
+              <option value="Maitre d'Oeuvre">MaÃ®tre d'Oeuvre</option>
               <option value="Bureau d'Etudes">Bureau d'Etudes</option>
               <option value="Entreprise">Entreprise</option>
               <option value="CSPS">CSPS</option>
-              <option value="Bureau de Controle">Bureau de Contrôle</option>
-              <option value="Autre">Autre (préciser)</option>
+              <option value="Bureau de Controle">Bureau de ContrÃ´le</option>
+              <option value="Autre">Autre (prÃ©ciser)</option>
             </select>
-            <input type="text" id="actor-type-custom" class="text-input hidden mt-2" placeholder="Préciser le rôle...">
+            <input type="text" id="actor-type-custom" class="text-input hidden mt-2" placeholder="PrÃ©ciser le rÃ´le...">
           </div>
           <div class="form-group flex-1">
-            <label>Société *</label>
+            <label>SociÃ©tÃ© *</label>
             <input type="text" id="actor-company" required class="text-input">
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group flex-1">
-            <label>Prénom *</label>
+            <label>PrÃ©nom *</label>
             <input type="text" id="actor-firstname" required class="text-input">
           </div>
           <div class="form-group flex-1">
@@ -305,10 +302,10 @@
     <div class="modal-content card distribution-card">
       <div class="modal-header">
         <h2>Envoyer le Compte Rendu</h2>
-        <button class="icon-btn close-modal-btn" onclick="closeDocModal()">✖</button>
+        <button class="icon-btn close-modal-btn" onclick="closeDocModal()">âœ–</button>
       </div>
       <div class="modal-body">
-        <p class="subtitle">Sélectionnez les acteurs qui recevront ce rapport :</p>
+        <p class="subtitle">SÃ©lectionnez les acteurs qui recevront ce rapport :</p>
         <div id="distribution-actors-list" class="checkbox-list">
           <!-- Actor checkboxes rendered here -->
         </div>
@@ -319,8 +316,32 @@
     </div>
   </div>
 
-  <!-- Custom Actor Dropdown -->
-  <div id="actor-dropdown" class="actor-dropdown hidden"></div>
+  <!-- Modal: Create/Edit Lot -->
+  <div id="lot-modal" class="modal hidden">
+    <div class="modal-content card">
+      <div class="modal-header">
+        <h2 id="lot-modal-title">Ajouter un Lot</h2>
+        <button type="button" class="icon-btn close-modal-btn" onclick="closeLotModal()">✖</button>
+      </div>
+      <form id="lot-form" class="modal-body">
+        <input type="hidden" id="lot-id">
+        <div class="form-group">
+          <label>Nom du Lot *</label>
+          <input type="text" id="lot-name" required placeholder="ex: Gros Oeuvre, Plomberie...">
+        </div>
+        <div class="form-group">
+          <label>Acteurs Assignés</label>
+          <div id="lot-actors-checkboxes" class="checkbox-list">
+            <!-- Checkboxes rendered here -->
+          </div>
+        </div>
+        <div class="modal-footer mt-4">
+          <button type="submit" class="primary-btn">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
 
   <script src="app.js"></script>
 </body>
