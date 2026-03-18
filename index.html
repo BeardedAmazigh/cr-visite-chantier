@@ -25,9 +25,9 @@
           </div>
           <div class="form-group">
             <label>Mot de passe</label>
-            <input type="password" id="auth-password" required placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" class="text-input">
+            <input type="password" id="auth-password" required placeholder="••••••••" class="text-input">
           </div>
-          <button type="submit" class="primary-btn">Se connecter / CrÃ©er un compte</button>
+          <button type="submit" class="primary-btn">Se connecter / Créer un compte</button>
         </form>
       </div>
     </div>
@@ -38,7 +38,7 @@
         <h2>Mes Projets</h2>
         <div class="user-menu">
            <span id="user-display"></span>
-           <button id="logout-btn" class="text-btn">DÃ©connexion</button>
+           <button id="logout-btn" class="text-btn">Déconnexion</button>
         </div>
       </header>
       
@@ -51,12 +51,12 @@
             <div class="image-upload-wrapper" style="margin: 0;">
                <input type="file" id="project-photo-upload" accept="image/*" class="hidden-input">
                <label for="project-photo-upload" class="upload-btn" style="margin: 0; width: 100%; justify-content: center;">
-                 <span class="icon">ðŸ“¸</span> Photo de couverture
+                 <span class="icon">📸</span> Photo de couverture
                </label>
             </div>
             <img id="project-photo-preview" src="" class="hidden" style="width: 100%; height: 80px; object-fit: cover; border-radius: 8px; margin-top: 0.5rem; border: 1px solid var(--border);">
           </div>
-          <button id="create-project-btn" class="primary-btn shrink" style="height: 46px;">CrÃ©er Projet</button>
+          <button id="create-project-btn" class="primary-btn shrink" style="height: 46px;">Créer Projet</button>
         </div>
         
         <div id="projects-list" class="grid-list">
@@ -83,7 +83,7 @@
          <div class="project-banner-overlay">
            <div class="banner-left" style="display:flex; gap:0.75rem; flex-wrap:wrap;">
              <button id="view-actors-btn" class="elegant-btn">
-               <span class="icon">ðŸ‘¥</span> GÃ©rer les Acteurs du Projet
+               <span class="icon">👥</span> Gérer les Acteurs du Projet
              </button>
               <button id="view-lots-btn" class="elegant-btn">
                 <span class="icon">📦</span> Gérer les Lots
@@ -92,7 +92,7 @@
            <div class="banner-right">
              <input type="file" id="edit-project-cover" accept="image/*" class="hidden-input">
              <label for="edit-project-cover" class="edit-cover-btn">
-               <span class="icon">ðŸ“¸</span> Modifier la couverture
+               <span class="icon">📸</span> Modifier la couverture
              </label>
            </div>
          </div>
@@ -121,7 +121,7 @@
           <textarea id="notes-input" placeholder="Ex: Le mur porteur fissure..."></textarea>
           
           <button id="generate-btn" class="primary-btn">
-            <span class="icon">âœ¨</span> GÃ©nÃ©rer le Brouillon
+            <span class="icon">✨</span> Générer le Brouillon
           </button>
           <div id="loading" class="hidden">
              <div class="spinner"></div>
@@ -130,21 +130,21 @@
           <div id="error-message" class="error hidden"></div>
         </section>
 
-        <!-- Section 2 : Ã‰dition du compte rendu (Output) -->
+        <!-- Section 2 : Édition du compte rendu (Output) -->
         <section id="output-section" class="card hidden slide-up">
           <div class="output-header">
-            <h2>2. Compte Rendu StructurÃ©</h2>
+            <h2>2. Compte Rendu Structuré</h2>
             <div class="actions">
               <button id="save-draft-btn" class="secondary-btn">Enregistrer Brouillon</button>
               <button id="print-btn" class="primary-btn">Exporter PDF</button>
             </div>
           </div>
           
-          <p class="subtitle">RÃ©digez vos remarques, assignez un acteur et une date limite pour chaque entrÃ©e.</p>
+          <p class="subtitle">Rédigez vos remarques, assignez un acteur et une date limite pour chaque entrée.</p>
 
           <!-- Attendance -->
           <div class="form-group">
-            <label>PrÃ©sences</label>
+            <label>Présences</label>
             <div id="attendance-container" class="table-container">
               <!-- Rendered by JS -->
             </div>
@@ -156,7 +156,7 @@
             <div class="image-upload-wrapper">
                <input type="file" id="photo-upload" accept="image/*" multiple class="hidden-input">
                <label for="photo-upload" class="upload-btn">
-                 <span class="icon">ðŸ“¸</span> Ajouter des photos
+                 <span class="icon">📸</span> Ajouter des photos
                </label>
             </div>
             <div id="photo-gallery" class="photo-gallery"></div>
@@ -166,7 +166,7 @@
           <div class="form-group">
             <label>Remarques &amp; Actions</label>
             <div id="entries-container"></div>
-            <button class="add-btn" id="add-entry-btn" onclick="addEntry()">+ Ajouter une entrÃ©e</button>
+            <button class="add-btn" id="add-entry-btn" onclick="addEntry()">+ Ajouter une entrée</button>
           </div>
         </section>
       </main>
@@ -213,14 +213,14 @@
     <div class="modal-content card">
       <div class="modal-header">
         <h2 id="actor-modal-title">Ajouter un acteur</h2>
-        <button class="icon-btn close-modal-btn" onclick="closeActorModal()">âœ–</button>
+        <button class="icon-btn close-modal-btn" onclick="closeActorModal()">✖</button>
       </div>
       <form id="actor-form" class="modal-body">
         <input type="hidden" id="actor-id">
         <div class="avatar-upload-wrapper">
            <label for="actor-photo" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center;">
              <img id="actor-photo-preview" src="" class="hidden">
-             <div id="actor-photo-placeholder" class="avatar-placeholder">ðŸ“¸ Photo</div>
+             <div id="actor-photo-placeholder" class="avatar-placeholder">📸 Photo</div>
            </label>
            <input type="file" id="actor-photo" accept="image/*" class="hidden-input">
         </div>
@@ -229,25 +229,25 @@
           <div class="form-group flex-1">
             <label>Type d'acteur *</label>
             <select id="actor-type" class="text-input" required>
-              <option value="Maitre d'Ouvrage">MaÃ®tre d'Ouvrage</option>
-              <option value="Maitre d'Oeuvre">MaÃ®tre d'Oeuvre</option>
+              <option value="Maitre d'Ouvrage">Maître d'Ouvrage</option>
+              <option value="Maitre d'Oeuvre">Maître d'Oeuvre</option>
               <option value="Bureau d'Etudes">Bureau d'Etudes</option>
               <option value="Entreprise">Entreprise</option>
               <option value="CSPS">CSPS</option>
-              <option value="Bureau de Controle">Bureau de ContrÃ´le</option>
-              <option value="Autre">Autre (prÃ©ciser)</option>
+              <option value="Bureau de Controle">Bureau de Contrôle</option>
+              <option value="Autre">Autre (préciser)</option>
             </select>
-            <input type="text" id="actor-type-custom" class="text-input hidden mt-2" placeholder="PrÃ©ciser le rÃ´le...">
+            <input type="text" id="actor-type-custom" class="text-input hidden mt-2" placeholder="Préciser le rôle...">
           </div>
           <div class="form-group flex-1">
-            <label>SociÃ©tÃ© *</label>
+            <label>Société *</label>
             <input type="text" id="actor-company" required class="text-input">
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group flex-1">
-            <label>PrÃ©nom *</label>
+            <label>Prénom *</label>
             <input type="text" id="actor-firstname" required class="text-input">
           </div>
           <div class="form-group flex-1">
@@ -302,10 +302,10 @@
     <div class="modal-content card distribution-card">
       <div class="modal-header">
         <h2>Envoyer le Compte Rendu</h2>
-        <button class="icon-btn close-modal-btn" onclick="closeDocModal()">âœ–</button>
+        <button class="icon-btn close-modal-btn" onclick="closeDocModal()">✖</button>
       </div>
       <div class="modal-body">
-        <p class="subtitle">SÃ©lectionnez les acteurs qui recevront ce rapport :</p>
+        <p class="subtitle">Sélectionnez les acteurs qui recevront ce rapport :</p>
         <div id="distribution-actors-list" class="checkbox-list">
           <!-- Actor checkboxes rendered here -->
         </div>
